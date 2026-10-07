@@ -53,6 +53,7 @@ Requiere Python 3.8 o superior.
 | `plugins/news_*`, `outlook_send` | Paquete de noticias (ver `docs/NOTICIAS.md`) |
 | `web/` | Interfaz en JavaScript puro (sin compilar, sin CDN) |
 | `docs/PLUGINS.md` | Guía para crear plugins |
+| `docs/CREAR_PLUGINS_CON_IA.md` | Crear plugins con una IA (prompt incluido) |
 
 ## Ejemplo de workflow
 

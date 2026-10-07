@@ -1207,7 +1207,7 @@
   var STATUS_ES = { enabled: "Habilitado", pending: "Pendiente de aprobación", changed: "Cambió (reaprobar)", disabled: "Deshabilitado", invalid: "Inválido" };
   function pluginsDialog() {
     var body = h("div", { text: "…" });
-    var dlg = dialog(t("plugins"), body, [{ label: t("reload_plugins"), keep: true, fn: function () {
+    var dlg = dialog(t("plugins"), body, [{ label: lang === "es" ? "✨ Crear con IA" : "✨ Create with AI", cls: "primary", keep: true, fn: function () { pluginAiDialog(function (list) { refresh(list); }); } }, { label: t("reload_plugins"), keep: true, fn: function () {
       api("POST", "/api/plugins/reload").then(function (d) { setPlugins(d.plugins); draw(d.plugins); }, function (e) { toast(e.message); }); } }, { label: t("close") }], true);
     function draw(list) {
       clear(body);
@@ -1240,6 +1240,45 @@
     function canAdm(p) { return /^[a-z][a-z0-9_]*$/.test(p.id || ""); }
     function refresh(list) { if (list) { setPlugins(list); draw(list); } else api("GET", "/api/plugins").then(function (d) { setPlugins(d.plugins); draw(d.plugins); }); }
     api("GET", "/api/plugins").then(function (d) { setPlugins(d.plugins); draw(d.plugins); });
+  }
+
+  // ---- crear plugins con una IA: prompt para copiar + importar lo que devuelve (solo administrador)
+  function copyToClipboard(text, ta) {
+    function fallback() { ta.select(); try { return document.execCommand("copy"); } catch (e) { return false; } }
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return fallback(); });
+    return Promise.resolve(fallback());
+  }
+  function pluginAiDialog(done) {
+    var es = lang === "es";
+    var prompt = h("textarea", { class: "code", rows: 9, readonly: "readonly", spellcheck: "false" });
+    var paste = h("textarea", { class: "code", rows: 9, spellcheck: "false", "data-ref": "1",
+      placeholder: es ? "=== plugin.json ===\n{...}\n=== task.py ===\ndef run(config, ctx): ..." : "=== plugin.json ===\n{...}\n=== task.py ===\ndef run(config, ctx): ..." });
+    var msg = h("div", { class: "help", style: "margin-top:6px;min-height:18px" });
+    var over = h("input", { type: "checkbox" });
+    api("GET", "/api/plugins/prompt").then(function (d) { prompt.value = d.prompt; }, function (e) { prompt.value = e.message; });
+    var body = h("div", null,
+      h("div", { class: "field" },
+        h("div", { class: "fl", text: es ? "1. Copie este prompt y péguelo en su IA (Claude, ChatGPT, Copilot…)" : "1. Copy this prompt into your AI assistant" }),
+        prompt,
+        h("div", { style: "margin-top:6px" }, h("button", { class: "btn sm", text: es ? "📋 Copiar prompt" : "📋 Copy prompt", onclick: function () {
+          copyToClipboard(prompt.value, prompt).then(function (ok) { msg.style.color = ""; msg.textContent = ok ? (es ? "Copiado. Reemplace [DESCRIBE AQUÍ LA TAREA] por lo que necesita." : "Copied. Replace the [DESCRIBE…] placeholder.") : (es ? "No se pudo copiar: seleccione el texto y use Ctrl+C." : "Could not copy: select the text and press Ctrl+C."); });
+        } }))),
+      h("div", { class: "field" },
+        h("div", { class: "fl", text: es ? "2. Pegue aquí la respuesta de la IA (los bloques «=== archivo ===»)" : "2. Paste the AI answer here" }),
+        paste,
+        h("label", { class: "muted", style: "display:block;margin-top:6px;font-size:12px" }, over, es ? " Reemplazar si ya existe un plugin con el mismo id" : " Replace if the id already exists")),
+      msg,
+      h("div", { class: "muted", style: "margin-top:8px;font-size:12px", text: es
+        ? "Se valida antes de instalar y queda PENDIENTE: revise el código (Editar) antes de aprobarlo. Un plugin hecho por una IA es código que se ejecuta en este servidor."
+        : "It is validated before install and stays PENDING: review the code before approving. AI-written plugins run as code on this server." }));
+    dialog(es ? "Crear un plugin con IA" : "Create a plugin with AI", body, [{ label: t("close") }, { label: es ? "Instalar plugin" : "Install plugin", cls: "primary", keep: true, fn: function (close) {
+      msg.style.color = ""; msg.textContent = "…";
+      api("POST", "/api/plugins/import", { text: paste.value, overwrite: over.checked }).then(function (d) {
+        toast((es ? "Plugin instalado (pendiente de aprobación): " : "Plugin installed (pending approval): ") + d.id);
+        close(); done(d.plugins);
+      }, function (e) { msg.style.color = "var(--err)"; msg.textContent = e.message; });
+      return false;
+    } }], true);
   }
 
   // ---- editar / renombrar / eliminar plugins (solo administrador)

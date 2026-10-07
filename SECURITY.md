@@ -29,3 +29,8 @@ un plugin aprobado por disco, así que equivale a darle al administrador la capa
 (el administrador aprueba código), pero ahora es más fácil de hacer y de abusar si una cuenta de administrador se compromete.
 Mitigaciones: solo rol admin, comprobación de Origin, cookie SameSite=Strict, auditoría de cada edición, validación previa
 y copia recuperable al eliminar. Si no la necesita, desactívela con `"allow_plugin_edit": false` en `config.json`.
+
+## Plugins creados con IA (v0.9.0)
+«Plugins → Crear con IA» instala código generado por terceros. Siempre queda **pendiente** y solo el administrador lo aprueba;
+revise el código antes (Editar). La validación comprueba forma (JSON, compilación, solo librería estándar), **no** intención.
+Se desactiva con `"allow_plugin_edit": false`.

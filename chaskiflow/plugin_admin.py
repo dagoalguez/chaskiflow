@@ -9,6 +9,7 @@ import json
 import os
 import re
 import shutil
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -201,3 +202,136 @@ def delete(registry, gate, pid, user):
     registry.reload()
     gate.db.audit(user, "plugin.delete", "%s -> %s (usado en %d workflows)" % (pid, dest.name, len(used)))
     return {"moved_to": str(dest), "used_by": used}
+
+
+# ------------------------------------------------------------------ crear / importar (p. ej. generado por una IA)
+_BLOCK = re.compile(r"^\s*={3,}\s*(?P<name>[A-Za-z0-9_][A-Za-z0-9_.\-]*)\s*={3,}\s*$")
+
+
+def parse_bundle(text):
+    """Convierte lo que pega el usuario en {nombre_de_archivo: contenido}.
+
+    Acepta (1) JSON {"files": {...}} o {"plugin.json": "...", ...} y (2) bloques «=== archivo ===».
+    Ignora las cercas de markdown (```) que suelen añadir los chats.
+    """
+    text = (text or "").strip()
+    if not text:
+        raise PluginAdminError("No hay nada que importar")
+    if text.startswith("{") and "===" not in text.split("\n", 1)[0]:
+        try:
+            data = json.loads(text)
+        except ValueError:
+            data = None
+        if isinstance(data, dict):
+            files = data.get("files") if isinstance(data.get("files"), dict) else data
+            if files and all(isinstance(k, str) and isinstance(v, str) for k, v in files.items()):
+                return files
+            if isinstance(data.get("id"), str):          # pegaron solo el plugin.json
+                return {MANIFEST: text}
+    files, cur, buf = {}, None, []
+    for line in text.replace("\r\n", "\n").split("\n"):
+        m = _BLOCK.match(line)
+        if m:
+            if cur is not None:
+                files[cur] = "\n".join(buf)
+            cur, buf = m.group("name"), []
+        elif cur is not None:
+            if line.strip().startswith("```"):
+                continue
+            buf.append(line)
+    if cur is not None:
+        files[cur] = "\n".join(buf)
+    if not files:
+        raise PluginAdminError("Formato no reconocido: use bloques «=== plugin.json ===» y «=== task.py ===»")
+    return {k: v.strip("\n") + "\n" for k, v in files.items()}
+
+
+def _stdlib_errors(files):
+    std = getattr(sys, "stdlib_module_names", None)
+    if not std:
+        return []
+    import ast
+    errs = []
+    local = {Path(n).stem for n in files if n.endswith(".py")}
+    for name, content in files.items():
+        if not name.endswith(".py"):
+            continue
+        try:
+            tree = ast.parse(content, filename=name)
+        except SyntaxError:
+            continue
+        for n in ast.walk(tree):
+            mods = []
+            if isinstance(n, ast.Import):
+                mods = [a.name.split(".")[0] for a in n.names]
+            elif isinstance(n, ast.ImportFrom) and not n.level and n.module:
+                mods = [n.module.split(".")[0]]
+            for mod in mods:
+                if mod not in std and mod not in local:
+                    errs.append("%s importa '%s', que no es de la librería estándar (aquí pip no funciona)" % (name, mod))
+    return sorted(set(errs))
+
+
+def create(registry, gate, files, user, overwrite=False):
+    """Instala un plugin nuevo desde {archivo: texto}. Queda PENDIENTE de aprobación (el admin revisa el código)."""
+    if not isinstance(files, dict) or MANIFEST not in files:
+        raise PluginAdminError("Falta plugin.json")
+    if len(files) > 12:
+        raise PluginAdminError("Demasiados archivos (máx. 12)")
+    total = 0
+    clean = {}
+    for name, content in files.items():
+        _check_name(name)
+        if not isinstance(content, str) or "\x00" in content:
+            raise PluginAdminError("%s: contenido inválido" % name)
+        content = content.replace("\r\n", "\n")
+        total += len(content.encode("utf-8"))
+        if len(content.encode("utf-8")) > MAX_FILE:
+            raise PluginAdminError("%s es demasiado grande" % name)
+        clean[name] = content
+    try:
+        manifest = json.loads(clean[MANIFEST])
+    except ValueError as e:
+        raise PluginAdminError("plugin.json no es JSON válido: %s" % e)
+    pid = manifest.get("id") if isinstance(manifest, dict) else None
+    if not isinstance(pid, str) or not ID_RE.match(pid):
+        raise PluginAdminError("El 'id' del plugin es inválido (minúsculas, números y _; empieza con letra)")
+    exists = registry.get(pid) is not None or any(b.id == pid for b in registry.problems)
+    if exists and not overwrite:
+        raise PluginAdminError("Ya existe un plugin con id '%s'. Cambie el id o marque «reemplazar»." % pid, 409)
+    errors = _stdlib_errors(clean)
+    for name, content in clean.items():
+        if name.endswith(".py"):
+            try:
+                compile(content, name, "exec")
+            except SyntaxError as e:
+                errors.append("%s no compila: línea %s: %s" % (name, e.lineno, e.msg))
+    tmp = Path(tempfile.mkdtemp(prefix="cf_new_"))
+    try:
+        dst = tmp / pid
+        dst.mkdir()
+        for name, content in clean.items():
+            (dst / name).write_text(content, encoding="utf-8")
+        chk = load_plugin(dst)
+        errors = list(chk.errors) + errors
+        if manifest.get("kind", "python") == "python":
+            entry = manifest.get("entry", "task.py")
+            if entry not in clean:
+                errors.append("falta el archivo de código '%s' declarado en 'entry'" % entry)
+    finally:
+        shutil.rmtree(str(tmp), ignore_errors=True)
+    if errors:
+        raise PluginAdminError("No se instaló: " + "; ".join(errors), errors=errors)
+    base = registry.dirs[-1]
+    base.mkdir(parents=True, exist_ok=True)
+    if exists:
+        delete(registry, gate, pid, user)
+    target = base / pid
+    if target.exists():
+        raise PluginAdminError("La carpeta %s ya existe" % target.name, 409)
+    target.mkdir()
+    for name, content in clean.items():
+        (target / name).write_text(content, encoding="utf-8")
+    registry.reload()
+    gate.db.audit(user, "plugin.create", "%s (%d archivo(s), pendiente de aprobación)" % (pid, len(clean)))
+    return pid

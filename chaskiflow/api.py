@@ -2,6 +2,7 @@
 
 import json
 import re
+from pathlib import Path
 
 from . import __version__
 from . import auth as authmod
@@ -254,6 +255,25 @@ def _padm(req, fn, *a, **kw):
         return fn(req.app.registry, req.app.gate, *a, **kw)
     except padm.PluginAdminError as e:
         raise ApiError(e.status, str(e), errors=e.errors)
+
+
+@route("GET", "/api/plugins/prompt", "admin")
+def plugin_prompt(req):
+    f = Path(__file__).resolve().parent.parent / "docs" / "PROMPT_CREAR_PLUGIN.txt"
+    if not f.is_file():
+        raise ApiError(404, "No se encontró docs/PROMPT_CREAR_PLUGIN.txt")
+    return {"prompt": f.read_text(encoding="utf-8-sig")}
+
+
+@route("POST", "/api/plugins/import", "admin")
+def plugin_import(req):
+    b = req.body()
+    try:
+        files = b["files"] if isinstance(b.get("files"), dict) else padm.parse_bundle(b.get("text"))
+    except padm.PluginAdminError as e:
+        raise ApiError(e.status, str(e))
+    pid = _padm(req, padm.create, files, req.user, overwrite=bool(b.get("overwrite")))
+    return {"id": pid, "plugins": req.app.gate.catalog(admin=True)}
 
 
 @route("GET", "/api/plugins/(?P<pid>[a-z][a-z0-9_]*)/files", "admin")

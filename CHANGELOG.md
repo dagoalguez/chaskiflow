@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.0 — 2026-10-07
+- **Crear plugins con IA**: Plugins → «✨ Crear con IA» muestra un prompt listo para copiar (`docs/PROMPT_CREAR_PLUGIN.txt`:
+  contrato completo, reglas del entorno —solo librería estándar, solo texto— y formato de entrega) y un cuadro para pegar la
+  respuesta de la IA (bloques `=== plugin.json ===` / `=== task.py ===`, o JSON). Se valida (JSON, manifiesto, compila, solo
+  librería estándar, nombres de archivo) y se instala **pendiente de aprobación**: el administrador revisa el código antes de aprobar.
+- API (admin): `GET /api/plugins/prompt`, `POST /api/plugins/import` (`text` o `files`, `overwrite`). Respeta `allow_plugin_edit`.
+- Nuevo `docs/CREAR_PLUGINS_CON_IA.md`. 8 pruebas nuevas (237 en total) y prueba de navegador `tests/ui_ai_plugin_smoke.py`.
+
 ## 0.8.0 — 2026-10-07
 - **Ejecución parcial desde el grafo**: al seleccionar un nodo aparecen «▶ Este paso», «▶ Hasta aquí» y «▶ Desde aquí».
   Los pasos que no se ejecutan reutilizan su último resultado correcto (de las 20 ejecuciones más recientes) y la ejecución

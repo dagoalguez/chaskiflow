@@ -126,6 +126,11 @@ Como administrador: **Plugins → Editar / Renombrar / Eliminar**. Editar valida
 con el contenido nuevo. Renombrar cambia el nombre visible y, si lo desea, el ID (migra los workflows). Eliminar mueve la
 carpeta a `plugins/_eliminados/`. Desactive todo esto con `"allow_plugin_edit": false` en `config.json`.
 
+## Crear un plugin con una IA
+
+Plugins → **✨ Crear con IA**: copie el prompt, descríbale la tarea a su IA y pegue la respuesta para instalarla.
+Detalle y recomendaciones en `docs/CREAR_PLUGINS_CON_IA.md`. El plugin queda **pendiente**: revíselo (Editar) antes de aprobar.
+
 ## Empezar rápido: plantilla y validador
 
 ```
