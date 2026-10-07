@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0 — 2026-10-07
+- **Plugins editables desde la interfaz** (Plugins → Editar / Renombrar / Eliminar; solo administrador):
+  - *Editar*: archivos de texto del plugin (código, `plugin.json`, ayudas) con validación previa en una copia temporal
+    (JSON, manifiesto, sintaxis); si estaba habilitado, queda aprobado con el contenido nuevo. Se pueden crear archivos nuevos.
+  - *Renombrar*: nombre visible y/o **ID**; cambiar el ID renombra la carpeta y migra automáticamente los workflows que lo usan.
+  - *Eliminar*: mueve la carpeta a `_eliminados/` (recuperable a mano) e indica cuántos workflows lo usaban.
+  - API: `GET /api/plugins/{id}/files`, `GET|PUT /api/plugins/{id}/file`, `POST /api/plugins/{id}/rename`, `DELETE /api/plugins/{id}`.
+    Auditoría `plugin.edit|rename|delete`. Se puede desactivar con `"allow_plugin_edit": false` en `config.json`.
+- **Paneles ocultables con ☰**: lista de workflows (☰ de la barra superior), panel de ejecuciones (☰ en la barra de pestañas
+  y en su cabecera) y panel del paso (☰ Panel en el grafo). Se recuerda en el navegador.
+- 10 pruebas nuevas (217 en total) y prueba de navegador opcional `tests/ui_panels_smoke.py`.
+
 ## 0.6.2 — 2026-10-07
 - **Interfaz**: se quita la pestaña «Pasos»; el **Grafo** es la única vista de edición (junto a «Ejecuciones»). Sin nodo
   seleccionado, el panel lateral muestra las **Variables** del workflow. Un paso nuevo se coloca a la derecha del nodo

@@ -22,3 +22,10 @@ entre usuarios autenticados, no contra un atacante con acceso a la red ni contra
 
 ## Reportar una vulnerabilidad
 Abra un aviso privado de seguridad en el repositorio (o escriba al mantenedor) en lugar de un issue público.
+
+## Edición de plugins desde la web (v0.7.0)
+Un administrador puede editar el código de los plugins desde la interfaz. Ese código se ejecuta en el servidor, igual que
+un plugin aprobado por disco, así que equivale a darle al administrador la capacidad de ejecutar código Python. Ya era así
+(el administrador aprueba código), pero ahora es más fácil de hacer y de abusar si una cuenta de administrador se compromete.
+Mitigaciones: solo rol admin, comprobación de Origin, cookie SameSite=Strict, auditoría de cada edición, validación previa
+y copia recuperable al eliminar. Si no la necesita, desactívela con `"allow_plugin_edit": false` en `config.json`.

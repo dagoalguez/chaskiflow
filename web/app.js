@@ -224,12 +224,36 @@
     inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { var v = inp.value.trim(); if (v) { d.close(); cb(v); } } });
   }
 
+
+  // ---- paneles que se ocultan con ☰ (se recuerdan en este navegador)
+  var PANELS = { sb: "cf_hide_sb", rp: "cf_hide_rp", insp: "cf_hide_insp" };
+  function panelHidden(k) { try { return localStorage.getItem(PANELS[k]) === "1"; } catch (e) { return !!S["hide_" + k]; } }
+  function setPanelHidden(k, v) {
+    S["hide_" + k] = v; try { localStorage.setItem(PANELS[k], v ? "1" : "0"); } catch (e) { /* sin almacenamiento */ }
+    applyPanels();
+  }
+  function applyPanels() {
+    var sh = document.querySelector(".shell"); if (!sh) return;
+    Object.keys(PANELS).forEach(function (k) { sh.classList.toggle("hide-" + k, panelHidden(k)); });
+    document.querySelectorAll("[data-panel]").forEach(function (b) {
+      var k = b.getAttribute("data-panel"); b.setAttribute("aria-pressed", panelHidden(k) ? "false" : "true");
+      b.classList.toggle("on", !panelHidden(k));
+    });
+    if (S.graphRefresh) { try { S.graphRefresh(); } catch (e) { /* aún no hay grafo */ } }
+  }
+  function panelBtn(k, title, label) {
+    return h("button", { class: "btn sm panel-toggle", "data-panel": k, title: title, "aria-label": title, text: label || "☰",
+      onclick: function () { setPanelHidden(k, !panelHidden(k)); } });
+  }
+
   // ============================================================ estructura principal
   var els = {};
   function renderShell() {
     stopPolling();
     var isAdmin = S.user.role === "admin";
     var top = h("div", { class: "topbar" },
+      h("button", { class: "panel-toggle", "data-panel": "sb", title: lang === "es" ? "Mostrar u ocultar la lista de workflows" : "Show or hide the workflow list", "aria-label": "Workflows", text: "☰",
+        onclick: function () { setPanelHidden("sb", !panelHidden("sb")); } }),
       h("span", { class: "brand", text: "⚙ ChaskiFlow" }), h("span", { class: "spacer" }),
       h("span", { class: "who", text: (S.user.display_name || S.user.username) + " · " + S.user.role }),
       h("button", { text: "⚙", title: t("settings"), onclick: settingsDialog }),
@@ -250,7 +274,7 @@
       els.list, sbFoot);
     els.main = h("div", { class: "main" });
     clear(root).appendChild(h("div", { class: "shell" }, top, h("div", { class: "body" }, side, els.main)));
-    renderList(); renderMain();
+    renderList(); renderMain(); applyPanels();
   }
 
   function renderList() {
@@ -404,7 +428,9 @@
       h("button", { class: "btn", text: "⋯", title: t("details"), onclick: moreMenu }));
     var tabs = h("div", { class: "tabs" },
       h("button", { class: "tab" + (S.tab === "graph" ? " active" : ""), text: t("graph"), onclick: function () { S.tab = "graph"; renderMain(); } }),
-      h("button", { class: "tab" + (S.tab === "runs" ? " active" : ""), text: t("runs"), onclick: function () { S.tab = "runs"; renderMain(); } }));
+      h("button", { class: "tab" + (S.tab === "runs" ? " active" : ""), text: t("runs"), onclick: function () { S.tab = "runs"; renderMain(); } }),
+      h("span", { class: "grow", style: "flex:1" }),
+      S.tab === "runs" ? null : panelBtn("rp", lang === "es" ? "Mostrar u ocultar el panel de ejecuciones" : "Show or hide the runs panel", "☰ " + t("runs")));
     els.editor = h("div", { class: "editor" });
     els.runpane = h("div", { class: "runpane" });
     els.main.appendChild(bar); els.main.appendChild(tabs);
@@ -416,6 +442,7 @@
     if (S.tab === "runs") renderHistoryTab(); else renderGraph();
     renderRunPane();
     updateSaveState();
+    applyPanels();
     if (S.live && !S.live.done) { setRunning(true); poll(); }
   }
 
@@ -845,6 +872,7 @@
     var tools = h("div", { class: "gtools" },
       edit ? sel : null,
       h("button", { class: "btn sm", text: lang === "es" ? "Ajustar" : "Fit", onclick: fit }),
+      panelBtn("insp", lang === "es" ? "Mostrar u ocultar el panel del paso" : "Show or hide the step panel", lang === "es" ? "☰ Panel" : "☰ Panel"),
       edit ? h("button", { class: "btn sm", text: lang === "es" ? "Ordenar" : "Auto-layout", onclick: function () { autoLayout(true); G.fitted = null; touch(); renderMain(); } }) : null,
       edit ? h("button", { class: "btn sm danger", text: t("remove"), disabled: !(G.sel || G.selEdge), onclick: deleteSelection }) : null,
       h("span", { class: "muted", style: "font-size:12px", text: lang === "es" ? "Un paso nuevo se conecta al nodo seleccionado. Arrastre del punto derecho de un nodo al izquierdo de otro para conectar" : "Drag from a node's right dot to another's left dot to connect" }));
@@ -974,7 +1002,9 @@
     clear(pane);
     var L = S.live;
     pane.appendChild(h("div", { class: "rp-head" }, h("b", { text: t("runs") }), h("span", { class: "grow", style: "flex:1" }),
-      L ? h("span", { class: "badge " + (L.status === "ok" ? "ok" : L.status === "error" ? "err" : ""), text: t(L.status) || L.status }) : null));
+      L ? h("span", { class: "badge " + (L.status === "ok" ? "ok" : L.status === "error" ? "err" : ""), text: t(L.status) || L.status }) : null,
+      h("button", { class: "btn sm icon", title: lang === "es" ? "Ocultar panel" : "Hide panel", "aria-label": lang === "es" ? "Ocultar panel" : "Hide panel", text: "☰",
+        onclick: function () { setPanelHidden("rp", true); } })));
     var body = h("div", { class: "rp-body" });
     pane.appendChild(body);
     if (S.viewRun) {
@@ -1169,7 +1199,11 @@
           h("td", null, h("div", { class: "mono", text: p.id + (p.version ? " v" + p.version : "") }), h("div", { class: "muted", style: "font-size:12px", text: (p.description || "").slice(0, 140) })),
           h("td", { text: p.kind || "" }), h("td", null, h("span", { class: "badge " + cls, text: STATUS_ES[p.status] || p.status }),
             p.errors && p.errors.length ? h("div", { class: "err-text", style: "font-size:12px;color:var(--err)", text: p.errors.join("; ") }) : null),
-          h("td", { class: "mono muted", style: "font-size:11px", text: (p.hash || "").slice(0, 10) }), h("td", null, act)));
+          h("td", { class: "mono muted", style: "font-size:11px", text: (p.hash || "").slice(0, 10) }),
+          h("td", { style: "white-space:nowrap" }, act, " ", canAdm(p) ? [
+            h("button", { class: "btn sm", text: lang === "es" ? "Editar" : "Edit", onclick: function () { pluginEditDialog(p, refresh); } }), " ",
+            h("button", { class: "btn sm", text: lang === "es" ? "Renombrar" : "Rename", onclick: function () { pluginRenameDialog(p, refresh); } }), " ",
+            h("button", { class: "btn sm danger", text: lang === "es" ? "Eliminar" : "Delete", onclick: function () { pluginDeleteDialog(p, refresh); } })] : null)));
       });
       body.appendChild(h("table", null, h("thead", null, h("tr", null, h("th", { text: t("name") }), h("th", { text: "ID" }), h("th", { text: "Tipo" }), h("th", { text: t("status") }), h("th", { text: "Hash" }), h("th"))), tb));
       body.appendChild(h("div", { class: "muted", style: "margin-top:10px;font-size:12px", text: lang === "es"
@@ -1179,7 +1213,99 @@
     function act_(p, action) {
       api("POST", "/api/plugins/" + p.id + "/" + action).then(function (d) { setPlugins(d.plugins); draw(d.plugins); }, function (e) { toast(e.message); });
     }
+    function canAdm(p) { return /^[a-z][a-z0-9_]*$/.test(p.id || ""); }
+    function refresh(list) { if (list) { setPlugins(list); draw(list); } else api("GET", "/api/plugins").then(function (d) { setPlugins(d.plugins); draw(d.plugins); }); }
     api("GET", "/api/plugins").then(function (d) { setPlugins(d.plugins); draw(d.plugins); });
+  }
+
+  // ---- editar / renombrar / eliminar plugins (solo administrador)
+  function pluginEditDialog(p, done) {
+    var es = lang === "es", cur = null, isNew = false, dirty = false;
+    var sel = h("select", { style: "width:auto;max-width:260px" });
+    var ta = h("textarea", { class: "code", rows: 22, spellcheck: "false", "data-ref": "1" });
+    var msg = h("div", { class: "help", style: "margin-top:6px;min-height:18px" });
+    ta.addEventListener("input", function () { dirty = true; msg.textContent = ""; });
+    ta.addEventListener("keydown", function (ev) {
+      if (ev.key === "Tab") { ev.preventDefault(); var a = ta.selectionStart; ta.setRangeText("    ", a, ta.selectionEnd, "end"); dirty = true; }
+    });
+    function load(name) {
+      api("GET", "/api/plugins/" + p.id + "/file?name=" + encodeURIComponent(name)).then(function (d) {
+        cur = name; isNew = false; dirty = false; ta.value = d.content; msg.textContent = "";
+      }, function (e) { msg.textContent = e.message; msg.style.color = "var(--err)"; });
+    }
+    function fillFiles(keep) {
+      return api("GET", "/api/plugins/" + p.id + "/files").then(function (d) {
+        clear(sel);
+        d.files.forEach(function (f) { sel.appendChild(h("option", { value: f.name, text: f.name, selected: f.name === keep })); });
+        sel.appendChild(h("option", { value: "__new__", text: es ? "+ Archivo nuevo…" : "+ New file…" }));
+        return d;
+      });
+    }
+    sel.addEventListener("change", function () {
+      var v = sel.value;
+      if (dirty && !window.confirm(es ? "Hay cambios sin guardar. ¿Descartarlos?" : "Discard unsaved changes?")) { sel.value = cur; return; }
+      if (v === "__new__") {
+        prompt_(es ? "Archivo nuevo" : "New file", es ? "Nombre (ej. ayuda.py)" : "Name (e.g. helper.py)", "", function (name) {
+          cur = name; isNew = true; dirty = true; ta.value = ""; clear(sel).appendChild(h("option", { value: name, text: name + " (" + (es ? "nuevo" : "new") + ")" })); sel.value = name;
+        });
+        sel.value = cur; return;
+      }
+      load(v);
+    });
+    function save() {
+      if (!cur) return false;
+      msg.style.color = ""; msg.textContent = es ? "Validando y guardando…" : "Validating and saving…";
+      api("PUT", "/api/plugins/" + p.id + "/file", { name: cur, content: ta.value }).then(function (d) {
+        dirty = false; var was = isNew; isNew = false; msg.style.color = "var(--ok)";
+        msg.textContent = es ? "✓ Guardado. " + (p.status === "enabled" ? "El plugin sigue habilitado con el contenido nuevo." : "Recuerde habilitarlo.")
+                             : "✓ Saved. " + (p.status === "enabled" ? "Plugin stays enabled with the new content." : "Remember to enable it.");
+        if (done) done(d.plugins);
+        if (was) fillFiles(cur);
+      }, function (e) { msg.style.color = "var(--err)"; msg.textContent = e.message; });
+      return false;
+    }
+    var body = h("div", null,
+      h("div", { class: "muted", style: "font-size:12px;margin-bottom:8px", text: es
+        ? "Edita el código del plugin en el servidor. Se valida antes de guardar (JSON, sintaxis, manifiesto). Si estaba habilitado, queda aprobado con el contenido nuevo: usted es quien lo aprueba."
+        : "Edits the plugin code on the server. It is validated before saving. If it was enabled it stays approved with the new content: you are the approver." }),
+      h("div", { style: "display:flex;gap:8px;align-items:center;margin-bottom:8px" }, h("b", { text: p.icon + " " + p.name }), sel), ta, msg);
+    dialog((es ? "Editar plugin · " : "Edit plugin · ") + p.id, body, [{ label: es ? "Guardar" : "Save", cls: "primary", keep: true, fn: save }, { label: t("close") }], true);
+    fillFiles("plugin.json").then(function (d) { var first = d.files.some(function (f) { return f.name === "task.py"; }) ? "task.py" : "plugin.json"; sel.value = first; load(first); });
+  }
+
+  function pluginRenameDialog(p, done) {
+    var es = lang === "es";
+    var nm = h("input", { type: "text", value: p.name || "", maxlength: "80" }), id = h("input", { type: "text", value: p.id, class: "mono" });
+    var body = h("div", null,
+      h("div", { class: "field" }, h("div", { class: "fl", text: es ? "Nombre visible" : "Display name" }), nm),
+      h("div", { class: "field" }, h("div", { class: "fl", text: "ID (avanzado)" }), id,
+        h("div", { class: "help", text: es ? "Cambiar el ID renombra la carpeta y actualiza automáticamente todos los workflows que usan este plugin. Minúsculas, números y _."
+                                         : "Changing the ID renames the folder and updates every workflow that uses this plugin. Lowercase, digits and _." })));
+    dialog((es ? "Renombrar plugin · " : "Rename plugin · ") + p.id, body, [{ label: t("cancel") }, { label: t("save"), cls: "primary", keep: true, fn: function (close) {
+      var b = {}; if (nm.value.trim() !== p.name) b.name = nm.value.trim(); if (id.value.trim() !== p.id) b.id = id.value.trim();
+      if (!b.name && !b.id) { close(); return false; }
+      api("POST", "/api/plugins/" + p.id + "/rename", b).then(function (d) {
+        close(); if (d.migrated_workflows) toast((es ? "Workflows actualizados: " : "Workflows updated: ") + d.migrated_workflows); if (done) done(d.plugins);
+      }, function (e) { toast(e.message); });
+      return false;
+    } }]);
+  }
+
+  function pluginDeleteDialog(p, done) {
+    var es = lang === "es";
+    api("GET", "/api/plugins/" + p.id + "/files").then(function (f) {
+      var used = f.used_by || [];
+      var body = h("div", null,
+        h("div", { text: es ? "¿Eliminar el plugin «" + p.name + "» (" + p.id + ")?" : "Delete plugin “" + p.name + "” (" + p.id + ")?" }),
+        h("div", { class: "muted", style: "margin-top:8px", text: es
+          ? "Su carpeta se mueve a plugins/_eliminados/ (se puede recuperar a mano). Los workflows que lo usen mostrarán un error hasta que lo reemplace."
+          : "Its folder is moved to plugins/_eliminados/ (recoverable by hand). Workflows that use it will show an error until you replace it." }),
+        used.length ? h("div", { style: "margin-top:8px;color:var(--warn)", text: (es ? "Lo usan " + used.length + " workflow(s): " : "Used by " + used.length + " workflow(s): ") + used.slice(0, 8).join(", ") }) : null);
+      dialog(es ? "Eliminar plugin" : "Delete plugin", body, [{ label: t("cancel") }, { label: es ? "Eliminar" : "Delete", cls: "danger", keep: true, fn: function (close) {
+        api("DELETE", "/api/plugins/" + p.id).then(function (d) { close(); toast(es ? "Plugin eliminado" : "Plugin deleted"); if (done) done(d.plugins); }, function (e) { toast(e.message); });
+        return false;
+      } }]);
+    }, function (e) { toast(e.message); });
   }
 
   function usersDialog() {

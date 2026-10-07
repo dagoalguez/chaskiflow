@@ -209,3 +209,13 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .imp-row { padding: 4px 0; border-bottom: 1px solid var(--border); }
 .imp-row.warn { color: var(--warn, #b45309); }
 .imp-row.error { color: var(--err); }
+
+.code { font-family: Consolas, "Cascadia Mono", "Courier New", monospace; font-size: 12.5px; white-space: pre; tab-size: 4; width: 100%; box-sizing: border-box; overflow: auto; }
+
+/* paneles que se ocultan con ☰ */
+.shell.hide-sb .sidebar { display: none; }
+.shell.hide-rp .runpane { display: none; }
+.shell.hide-insp .inspector { display: none; }
+.topbar button.panel-toggle { font-size: 18px; line-height: 1; padding: 3px 9px; }
+.btn.panel-toggle.on { background: var(--panel2); }
+.rp-head .btn.icon { margin-left: 6px; }

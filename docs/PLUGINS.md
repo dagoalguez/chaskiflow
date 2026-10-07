@@ -120,6 +120,12 @@ En la configuración de un nodo se escribe `{{Etiqueta.result.campo}}`.
 * Solo se pueden usar nodos **conectados antes**; el sistema lo valida antes de ejecutar.
 * `{{vars.nombre}}` lee las variables del workflow.
 
+## Editar, renombrar y eliminar desde la interfaz
+
+Como administrador: **Plugins → Editar / Renombrar / Eliminar**. Editar valida antes de guardar y deja el plugin aprobado
+con el contenido nuevo. Renombrar cambia el nombre visible y, si lo desea, el ID (migra los workflows). Eliminar mueve la
+carpeta a `plugins/_eliminados/`. Desactive todo esto con `"allow_plugin_edit": false` en `config.json`.
+
 ## Empezar rápido: plantilla y validador
 
 ```

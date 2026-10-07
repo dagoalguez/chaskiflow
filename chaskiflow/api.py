@@ -6,6 +6,7 @@ import re
 from . import __version__
 from . import auth as authmod
 from . import g1g_import
+from . import plugin_admin as padm
 from .access import allows, workflow_level
 from .engine import Engine, normalize
 from .router import ApiError, route
@@ -244,6 +245,55 @@ def plugin_toggle(req):
     except ValueError as e:
         raise ApiError(404, str(e))
     return {"plugins": req.app.gate.catalog(admin=True)}
+
+
+def _padm(req, fn, *a, **kw):
+    if not req.app.cfg.get("allow_plugin_edit", True):
+        raise ApiError(403, "La edición de plugins desde la web está desactivada (allow_plugin_edit en config.json)")
+    try:
+        return fn(req.app.registry, req.app.gate, *a, **kw)
+    except padm.PluginAdminError as e:
+        raise ApiError(e.status, str(e), errors=e.errors)
+
+
+@route("GET", "/api/plugins/(?P<pid>[a-z][a-z0-9_]*)/files", "admin")
+def plugin_files(req):
+    try:
+        p = padm._plugin(req.app.registry, req.params["pid"])
+    except padm.PluginAdminError as e:
+        raise ApiError(e.status, str(e))
+    return {"files": padm.list_files(p), "used_by": padm.usage(req.db, p.id)}
+
+
+@route("GET", "/api/plugins/(?P<pid>[a-z][a-z0-9_]*)/file", "admin")
+def plugin_file_get(req):
+    try:
+        p = padm._plugin(req.app.registry, req.params["pid"])
+        return {"name": req.qstr("name"), "content": padm.read_file(p, req.qstr("name"))}
+    except padm.PluginAdminError as e:
+        raise ApiError(e.status, str(e))
+
+
+@route("PUT", "/api/plugins/(?P<pid>[a-z][a-z0-9_]*)/file", "admin")
+def plugin_file_put(req):
+    b = req.body()
+    if not isinstance(b.get("content"), str):
+        raise ApiError(400, "Falta 'content'")
+    _padm(req, padm.write_file, req.params["pid"], b.get("name"), b["content"], req.user)
+    return {"plugins": req.app.gate.catalog(admin=True)}
+
+
+@route("POST", "/api/plugins/(?P<pid>[a-z][a-z0-9_]*)/rename", "admin")
+def plugin_rename(req):
+    b = req.body()
+    migrated = _padm(req, padm.rename, req.params["pid"], req.user, name=b.get("name"), new_id=b.get("id"))
+    return {"plugins": req.app.gate.catalog(admin=True), "migrated_workflows": migrated}
+
+
+@route("DELETE", "/api/plugins/(?P<pid>[a-z][a-z0-9_]*)", "admin")
+def plugin_delete(req):
+    res = _padm(req, padm.delete, req.params["pid"], req.user)
+    return dict(res, plugins=req.app.gate.catalog(admin=True))
 
 
 # ======================================================================== workflows

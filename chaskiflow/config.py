@@ -14,6 +14,7 @@ DEFAULTS = {
     "session_idle_hours": 12,           # cierre de sesión por inactividad
     "run_retention_days": 90,           # 0 = no borrar nunca el historial
     "max_body_mb": 10,                  # tamaño máximo de una petición
+    "allow_plugin_edit": True,          # el administrador puede editar/renombrar/eliminar plugins desde la web
     "scheduler_enabled": True,          # programación horaria (hilo interno)
     "scheduler_tick_seconds": 15,       # cada cuánto revisa qué toca ejecutar
 }
