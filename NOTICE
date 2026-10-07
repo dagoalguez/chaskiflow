@@ -7,3 +7,9 @@ Contribuciones: Claude.
 Licenciado bajo la Licencia Apache, Versión 2.0 (ver el archivo LICENSE).
 Quien redistribuya este software, modificado o no, debe conservar este aviso (NOTICE)
 y los avisos de copyright, como exige la sección 4 de la Licencia.
+
+Componentes de terceros incluidos
+---------------------------------
+pypdf 6.19.0 (plugins/pdf_keyword_scan/pypdf/) — biblioteca para leer PDF, escrita solo en Python.
+Copyright (c) 2006-2008 Mathieu Fenniak y colaboradores. Licencia BSD de 3 cláusulas
+(texto en plugins/pdf_keyword_scan/pypdf/LICENSE.txt). Sitio: https://github.com/py-pdf/pypdf

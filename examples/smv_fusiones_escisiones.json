@@ -1,0 +1,171 @@
+{
+  "name": "SMV: fusiones, escisiones y reorganizaciones en estados financieros",
+  "description": "Descarga del portal de la SMV (Información Financiera) los «Estados Financieros y Dictamen» individuales anuales de cada empresa y año, revisa los PDF buscando «fusión», «escisión» y «reorganización societaria» (texto del PDF; las páginas escaneadas se leen con un modelo local con visión, p. ej. LFM2.5-VL en quipullm) y organiza en carpetas los que las contienen. Exporta un resumen en CSV y Excel. Antes de ejecutar: cambie la carpeta, deje en «empresas» las que quiere (separadas por punto y coma; vacío = todas, más de 200) y escriba la IP del modelo. Guarde la clave del modelo como secreto «quipullm_key» si su servidor la usa. Si se corta o agota el tiempo, vuelva a ejecutar: continúa sin repetir lo ya descargado y revisado.",
+  "variables": {
+    "carpeta": "./salida_smv",
+    "empresas": "ALICORP; FALABELLA; BACKUS",
+    "anio_desde": 2021,
+    "anio_hasta": 2025,
+    "ia_url": "http://192.168.1.50:1234/v1",
+    "ia_modelo": "lfm2.5-vl-1.6b"
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "label": "Descarga",
+      "type": "smv_financial_download",
+      "config": {
+        "carpeta": "{{vars.carpeta}}",
+        "empresas": "{{vars.empresas}}",
+        "anio_desde": "{{vars.anio_desde}}",
+        "anio_hasta": "{{vars.anio_hasta}}",
+        "tipo": "Individual",
+        "documento": "Estados Financieros y Dictamen",
+        "pausa": 1,
+        "max_total_seconds": 0
+      },
+      "on_error": "stop",
+      "position": {
+        "x": 40,
+        "y": 120
+      }
+    },
+    {
+      "id": "n2",
+      "label": "Escaneo",
+      "type": "pdf_keyword_scan",
+      "config": {
+        "files": "{{Descarga.result.archivos}}",
+        "output_dir": "{{vars.carpeta}}",
+        "keywords": "fusión\nescisión\nreorganización societaria",
+        "usar_ia": true,
+        "base_url": "{{vars.ia_url}}",
+        "model": "{{vars.ia_modelo}}",
+        "ia_max_paginas": 60,
+        "mover": false,
+        "separar_no_leidos": true
+      },
+      "on_error": "stop",
+      "position": {
+        "x": 340,
+        "y": 120
+      }
+    },
+    {
+      "id": "n3",
+      "label": "Csv",
+      "type": "export_csv",
+      "config": {
+        "data": "{{Escaneo.result.rows}}",
+        "output_dir": "{{vars.carpeta}}",
+        "filename": "fusiones_%Y-%m-%d",
+        "columns": "empresa,anio,archivo,identificado,palabras,paginas_hallazgo,deteccion,contexto,metodo,paginas,paginas_con_texto,paginas_sin_texto,paginas_leidas_ia,paginas_sin_leer,copiado_a,nota,ruta",
+        "rename": {
+          "empresa": "Empresa",
+          "anio": "Año",
+          "archivo": "Archivo",
+          "identificado": "Identificado",
+          "palabras": "Palabras (veces)",
+          "paginas_hallazgo": "Páginas con hallazgo",
+          "deteccion": "Detección",
+          "contexto": "Contexto",
+          "metodo": "Método de lectura",
+          "paginas": "Páginas",
+          "paginas_con_texto": "Con texto",
+          "paginas_sin_texto": "Sin texto (escaneadas)",
+          "paginas_leidas_ia": "Leídas con IA",
+          "paginas_sin_leer": "Sin leer",
+          "copiado_a": "Copiado a",
+          "nota": "Nota",
+          "ruta": "Ruta original"
+        }
+      },
+      "on_error": "stop",
+      "position": {
+        "x": 640,
+        "y": 40
+      }
+    },
+    {
+      "id": "n4",
+      "label": "Excel",
+      "type": "export_xlsx",
+      "config": {
+        "data": "{{Escaneo.result.rows}}",
+        "output_dir": "{{vars.carpeta}}",
+        "filename": "fusiones_%Y-%m-%d",
+        "sheet_name": "Revisión",
+        "columns": "empresa,anio,archivo,identificado,palabras,paginas_hallazgo,deteccion,contexto,metodo,paginas,paginas_con_texto,paginas_sin_texto,paginas_leidas_ia,paginas_sin_leer,copiado_a,nota,ruta",
+        "rename": {
+          "empresa": "Empresa",
+          "anio": "Año",
+          "archivo": "Archivo",
+          "identificado": "Identificado",
+          "palabras": "Palabras (veces)",
+          "paginas_hallazgo": "Páginas con hallazgo",
+          "deteccion": "Detección",
+          "contexto": "Contexto",
+          "metodo": "Método de lectura",
+          "paginas": "Páginas",
+          "paginas_con_texto": "Con texto",
+          "paginas_sin_texto": "Sin texto (escaneadas)",
+          "paginas_leidas_ia": "Leídas con IA",
+          "paginas_sin_leer": "Sin leer",
+          "copiado_a": "Copiado a",
+          "nota": "Nota",
+          "ruta": "Ruta original"
+        }
+      },
+      "on_error": "stop",
+      "position": {
+        "x": 640,
+        "y": 160
+      }
+    },
+    {
+      "id": "n5",
+      "label": "Registro",
+      "type": "export_csv",
+      "config": {
+        "data": "{{Descarga.result.rows}}",
+        "output_dir": "{{vars.carpeta}}",
+        "filename": "descargas_%Y-%m-%d",
+        "columns": "empresa,anio,documento,expediente,fecha,estado,archivo,url,error",
+        "rename": {
+          "empresa": "Empresa",
+          "anio": "Año",
+          "documento": "Documento",
+          "expediente": "N° Expediente",
+          "fecha": "Fecha de presentación",
+          "estado": "Estado",
+          "archivo": "Archivo",
+          "url": "Enlace",
+          "error": "Error"
+        }
+      },
+      "on_error": "stop",
+      "position": {
+        "x": 340,
+        "y": 260
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "n1",
+      "target": "n2"
+    },
+    {
+      "source": "n2",
+      "target": "n3"
+    },
+    {
+      "source": "n2",
+      "target": "n4"
+    },
+    {
+      "source": "n1",
+      "target": "n5"
+    }
+  ]
+}

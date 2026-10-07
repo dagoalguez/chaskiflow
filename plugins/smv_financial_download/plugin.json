@@ -1,0 +1,39 @@
+{
+  "id": "smv_financial_download",
+  "name": "SMV: descargar estados financieros",
+  "version": "1.0.0",
+  "author": "ChaskiFlow",
+  "icon": "📥",
+  "category": "Sitios web",
+  "description": "Busca en el portal de la SMV (Información Financiera) cada empresa y cada año, y descarga los PDF de la fila cuyo «Documento» es, por defecto, «Estados Financieros y Dictamen» (tipo Individual o Consolidada, período Anual). Guarda en Carpeta/Descargas/Empresa/Año/. Si se vuelve a ejecutar, no repite lo ya descargado. Un fallo en una empresa no detiene a las demás.",
+  "kind": "python",
+  "entry": "task.py",
+  "timeout": 43200,
+  "fields": [
+    {"key": "carpeta", "label": "Carpeta de salida", "type": "string", "required": true, "help": "Se crea Descargas/Empresa/Año dentro de esta carpeta"},
+    {"key": "empresas", "label": "Empresas", "type": "text", "default": "", "help": "Una por línea (o separadas por punto y coma): parte del nombre (ej. FALABELLA, ALICORP) o el código numérico del portal. Vacío = TODAS las del portal (son más de 200)"},
+    {"key": "anio_desde", "label": "Año desde", "type": "number", "default": 2021, "min": 1999, "max": 2100},
+    {"key": "anio_hasta", "label": "Año hasta", "type": "number", "default": 2025, "min": 1999, "max": 2100},
+    {"key": "tipo", "label": "Tipo", "type": "select", "default": "Individual", "options": ["Individual", "Consolidada"]},
+    {"key": "documento", "label": "Documento a descargar", "type": "string", "default": "Estados Financieros y Dictamen", "help": "Texto exacto de la columna «Documento» (no importan mayúsculas ni tildes)"},
+    {"key": "pausa", "label": "Pausa entre consultas (s)", "type": "number", "default": 1.0, "min": 0, "max": 60, "help": "Cortesía con el portal"},
+    {"key": "max_total_seconds", "label": "Tiempo máximo total (s)", "type": "number", "default": 0, "min": 0, "max": 43000, "help": "0 = sin límite propio (el tope del paso es 12 horas). Al agotarse, termina bien y deja lo pendiente marcado; al volver a ejecutar continúa donde quedó"},
+    {"key": "reemplazar", "label": "Volver a descargar lo que ya existe", "type": "boolean", "default": false},
+    {"key": "reintentos", "label": "Reintentos por consulta", "type": "number", "default": 3, "min": 0, "max": 10, "advanced": true},
+    {"key": "timeout", "label": "Tiempo de espera por consulta (s)", "type": "number", "default": 60, "min": 5, "max": 300, "advanced": true},
+    {"key": "portal_url", "label": "Dirección del portal", "type": "string", "default": "", "advanced": true, "help": "Vacío = la de Información Financiera de la SMV"},
+    {"key": "verify_ssl", "label": "Verificar SSL", "type": "boolean", "default": true, "advanced": true},
+    {"key": "ca_bundle", "label": "Archivo CA (opcional)", "type": "string", "default": "", "advanced": true, "help": "Para proxys que re-firman SSL"},
+    {"key": "proxy", "label": "Proxy (opcional)", "type": "string", "default": "", "advanced": true, "placeholder": "http://proxy:8080 (vacío = el del sistema)"},
+    {"key": "user_agent", "label": "User-Agent (opcional)", "type": "string", "default": "", "advanced": true}
+  ],
+  "outputs": [
+    {"key": "rows", "type": "list", "description": "Una fila por documento: empresa, anio, documento, expediente, fecha, url, archivo, estado (descargado / ya existía / error), bytes, error"},
+    {"key": "files", "type": "list", "description": "Rutas de los PDF disponibles (descargados y ya existentes)"},
+    {"key": "archivos", "type": "list", "description": "Igual que «files» pero con empresa y año de cada PDF (es lo que usa el paso de escaneo)"},
+    {"key": "total", "type": "number", "description": "Cantidad de PDF disponibles"},
+    {"key": "stats", "type": "object", "description": "descargados, existentes, errores, sin_documento, pendientes, empresas, segundos"},
+    {"key": "sin_documento", "type": "list", "description": "Empresa y año sin ese documento en el portal"},
+    {"key": "carpeta_descargas", "type": "string", "description": "Carpeta donde quedaron los PDF"}
+  ]
+}

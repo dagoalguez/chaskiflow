@@ -58,6 +58,7 @@ Requiere Python 3.8 o superior.
 | `web/` | Interfaz en JavaScript puro (sin compilar, sin CDN) |
 | `docs/PLUGINS.md` | Guía para crear plugins |
 | `docs/SUCURSALES.md` | Ejemplo: sucursales desde una lista de enlaces con IA local |
+| `docs/SMV_FUSIONES.md` | Ejemplo: estados financieros de la SMV, búsqueda de fusión/escisión/reorganización societaria |
 | `docs/CREAR_PLUGINS_CON_IA.md` | Crear plugins con una IA (prompt incluido) |
 
 ## Ejemplo de workflow

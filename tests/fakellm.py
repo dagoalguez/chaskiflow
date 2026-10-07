@@ -1,8 +1,11 @@
 """Servidor falso compatible con OpenAI (como quipullm) para probar el plugin de IA local."""
 
+import base64
 import json
 import re
+import struct
 import threading
+import zlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
@@ -37,6 +40,8 @@ class FakeLLM:
                     return self.send(401, {"error": "clave incorrecta"})
                 S.calls += 1
                 user = body["messages"][-1]["content"]
+                if isinstance(user, list):                     # petición con imagen (modelo de visión)
+                    return self.vision(user)
                 S.users.append(user)
                 S.model_seen = body.get("model")
                 if S.mode == "http500":
@@ -63,6 +68,32 @@ class FakeLLM:
                 for m in re.finditer(r"((?:Av|Jr|Calle)\.?\s[A-Za-zÁÉÍÓÚáéíóúñ ]+\d+),\s*([A-Za-zÁÉÍÓÚáéíóúñ ]+)", text):
                     out.append({"nombre": "Sede", "direccion": m.group(1), "distrito": m.group(2).strip(), "ciudad": "", "departamento": "", "telefono": "", "horario": ""})
                 self.reply(S.wrap(json.dumps(out, ensure_ascii=False)))
+
+            def vision(self, parts):
+                S.vision_calls = getattr(S, "vision_calls", 0) + 1
+                text = next(p["text"] for p in parts if p.get("type") == "text")
+                uri = next(p["image_url"]["url"] for p in parts if p.get("type") == "image_url")
+                mime, b64 = uri[5:].split(";base64,", 1)
+                data = base64.b64decode(b64)
+                S.images = getattr(S, "images", []) + [mime]
+                if S.mode == "http500":
+                    return self.send(500, {"error": "boom"})
+                if S.mode == "garbage":
+                    return self.reply("no sé")
+                if mime == "image/jpeg":
+                    words = ["reorganización societaria"]
+                else:                                           # PNG gris: el valor del primer píxel decide
+                    raw = b""
+                    i = 8
+                    while i < len(data):
+                        ln = struct.unpack(">I", data[i:i + 4])[0]
+                        if data[i + 4:i + 8] == b"IDAT":
+                            raw += data[i + 8:i + 8 + ln]
+                        i += 12 + ln
+                    v = zlib.decompress(raw)[1]
+                    words = {200: ["fusión"], 150: ["escisión", "Fusión"]}.get(v, [])
+                words = [w for w in words if w in text or w.lower() in text]
+                self.reply(S.wrap(json.dumps({"encontradas": words, "contexto": "…aprobó la %s…" % words[0] if words else ""}, ensure_ascii=False)))
 
             def reply(self, content):
                 self.send(200, {"choices": [{"message": {"role": "assistant", "content": content}}], "usage": {}})

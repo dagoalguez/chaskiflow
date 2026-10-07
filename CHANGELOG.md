@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0 — 2026-10-07
+- **Ejemplo «SMV: fusiones, escisiones y reorganizaciones»** (`examples/smv_fusiones_escisiones.json`, `docs/SMV_FUSIONES.md`).
+- Plugin nuevo **`smv_financial_download`**: busca en el portal *Información Financiera* de la SMV cada empresa y año (Individual/Consolidada, Anual) y descarga los «Estados Financieros y Dictamen». Retoma sin repetir, reintenta, sigue ante errores y admite «Tiempo máximo total». `probar_smv.py` para probar una empresa desde la consola.
+- Plugin nuevo **`pdf_keyword_scan`**: busca palabras en PDF (texto; sin mayúsculas, tildes, con plurales y guiones de fin de línea) y copia los que tienen hallazgos a `IDENTIFICADOS/Empresa/Año`. Las **páginas sin texto** se leen con un modelo local con visión (LFM2.5-VL en quipullm); lo que no se pueda leer va a `REVISAR_MANUAL`. Recuerda lo revisado para continuar sin repetir. Incluye **pypdf 6.19.0** (BSD, pura Python; ver `NOTICE`), sin pip ni binarios.
+- Pruebas nuevas `tests/test_smv.py` con un portal simulado (formulario con `__VIEWSTATE`, paginación), PDF de prueba generados sin librerías (`tests/pdfmaker.py`) y visión simulada.
+
 ## 0.12.0 — 2026-10-07
 - **Duplicar, copiar y pegar pasos en el grafo.** Clic derecho en un paso: *Duplicar* (Ctrl+D), *Copiar* (Ctrl+C), *Eliminar*. Clic derecho en el fondo: *Pegar aquí* (Ctrl+V). Se puede pegar también en **otro workflow**.
 - **El paso pegado queda sin conexiones.** Para que no haya referencias rotas, las plantillas que apuntan a otros pasos (`{{Paso.result...}}`) se **vacían** y el aviso lo indica; `{{vars.x}}` se conserva y, si la variable no existe en el workflow destino, se crea con su valor. El nombre se hace único («Rastreo2»).
