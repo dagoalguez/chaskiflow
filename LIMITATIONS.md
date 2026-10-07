@@ -8,6 +8,9 @@ Honestas y a propósito: aquí va lo que **no** hace o **no se ha medido**.
 - Sin bucles `foreach` ni nodos condicionales (el grafo es un DAG simple).
 - Sin cambio de contraseña "olvidada" por correo: el admin la restablece en Usuarios.
 
+## Sucursales (rastreo + IA local)
+- No ejecuta JavaScript; no se ha probado con sitios reales ni con quipullm real. Ver `docs/SUCURSALES.md`.
+
 ## Programación
 - Corre **dentro del servidor**: si `servidor.py` no está en marcha (o la PC está apagada/suspendida) a la hora
   indicada, esa ejecución **se omite** si el retraso supera la tolerancia (120 min por defecto); no se acumulan.

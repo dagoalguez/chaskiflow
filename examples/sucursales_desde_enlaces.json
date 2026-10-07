@@ -1,0 +1,156 @@
+{
+  "name": "Sucursales desde una lista de enlaces",
+  "description": "Lee una lista de sitios (CSV/TXT), recorre cada uno buscando «Ubícanos», sucursales, tiendas, mapas y selectores por distrito, y estructura las direcciones con un modelo de lenguaje LOCAL (quipullm u otro compatible con OpenAI). Exporta CSV, Excel y un resumen por sitio. Antes de ejecutar: cambie las variables (archivo e IP del modelo) y guarde la clave del modelo como secreto «quipullm_key» (si su servidor no usa clave, no hace falta).",
+  "variables": {
+    "archivo_enlaces": "./examples/enlaces_ejemplo.csv",
+    "ia_url": "http://192.168.1.50:1234/v1",
+    "ia_modelo": "",
+    "paginas_por_sitio": 40,
+    "carpeta": "./salida"
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "label": "Lista",
+      "type": "url_list_read",
+      "config": {
+        "file_path": "{{vars.archivo_enlaces}}",
+        "column": "",
+        "name_column": "",
+        "limit": 0
+      },
+      "on_error": "stop"
+    },
+    {
+      "id": "n2",
+      "label": "Rastreo",
+      "type": "site_locations_crawl",
+      "config": {
+        "sites": "{{Lista.result.items}}",
+        "max_pages": "{{vars.paginas_por_sitio}}",
+        "max_depth": 3,
+        "delay": 0.4,
+        "max_seconds": 240,
+        "workers": 3
+      },
+      "on_error": "stop"
+    },
+    {
+      "id": "n3",
+      "label": "IA",
+      "type": "llm_structure_addresses",
+      "config": {
+        "base_url": "{{vars.ia_url}}",
+        "model": "{{vars.ia_modelo}}",
+        "rows": "{{Rastreo.result.rows}}",
+        "bloques": "{{Rastreo.result.bloques}}",
+        "batch_size": 6,
+        "max_items": 400,
+        "fallback": true
+      },
+      "on_error": "stop"
+    },
+    {
+      "id": "n4",
+      "label": "Csv",
+      "type": "export_csv",
+      "config": {
+        "data": "{{IA.result.rows}}",
+        "output_dir": "{{vars.carpeta}}",
+        "filename": "sucursales_%Y-%m-%d",
+        "columns": "sitio,nombre,direccion,distrito,ciudad,departamento,telefono,horario,lat,lng,fuente,verificada,metodo,pagina_url,sitio_url",
+        "rename": {
+          "sitio": "Sitio",
+          "nombre": "Local",
+          "direccion": "Dirección",
+          "distrito": "Distrito",
+          "ciudad": "Ciudad",
+          "departamento": "Departamento",
+          "telefono": "Teléfono",
+          "horario": "Horario",
+          "lat": "Latitud",
+          "lng": "Longitud",
+          "fuente": "Fuente",
+          "verificada": "Verificada",
+          "metodo": "Método",
+          "pagina_url": "Página de origen",
+          "sitio_url": "URL del sitio"
+        }
+      },
+      "on_error": "stop"
+    },
+    {
+      "id": "n5",
+      "label": "Excel",
+      "type": "export_xlsx",
+      "config": {
+        "data": "{{IA.result.rows}}",
+        "output_dir": "{{vars.carpeta}}",
+        "filename": "sucursales_%Y-%m-%d",
+        "sheet_name": "Sucursales",
+        "columns": "sitio,nombre,direccion,distrito,ciudad,departamento,telefono,horario,lat,lng,fuente,verificada,metodo,pagina_url,sitio_url",
+        "rename": {
+          "sitio": "Sitio",
+          "nombre": "Local",
+          "direccion": "Dirección",
+          "distrito": "Distrito",
+          "ciudad": "Ciudad",
+          "departamento": "Departamento",
+          "telefono": "Teléfono",
+          "horario": "Horario",
+          "lat": "Latitud",
+          "lng": "Longitud",
+          "fuente": "Fuente",
+          "verificada": "Verificada",
+          "metodo": "Método",
+          "pagina_url": "Página de origen",
+          "sitio_url": "URL del sitio"
+        }
+      },
+      "on_error": "stop"
+    },
+    {
+      "id": "n6",
+      "label": "Resumen",
+      "type": "export_csv",
+      "config": {
+        "data": "{{Rastreo.result.sites}}",
+        "output_dir": "{{vars.carpeta}}",
+        "filename": "sucursales_resumen_%Y-%m-%d",
+        "columns": "sitio,url,paginas,candidatos,bloqueadas_por_robots,cortado,segundos",
+        "rename": {
+          "sitio": "Sitio",
+          "url": "URL",
+          "paginas": "Páginas leídas",
+          "candidatos": "Candidatos",
+          "bloqueadas_por_robots": "Bloqueadas por robots.txt",
+          "cortado": "Cortado por",
+          "segundos": "Segundos"
+        }
+      },
+      "on_error": "stop"
+    }
+  ],
+  "edges": [
+    {
+      "source": "n1",
+      "target": "n2"
+    },
+    {
+      "source": "n2",
+      "target": "n3"
+    },
+    {
+      "source": "n3",
+      "target": "n4"
+    },
+    {
+      "source": "n3",
+      "target": "n5"
+    },
+    {
+      "source": "n2",
+      "target": "n6"
+    }
+  ]
+}

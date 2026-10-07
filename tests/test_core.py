@@ -150,8 +150,9 @@ class LoaderTests(unittest.TestCase):
         reg = PluginRegistry([PLUGINS])
         self.assertEqual(reg.problems, [])
         self.assertEqual(sorted(reg.plugins), ["export_csv", "export_xlsx", "hello_world",
-                                               "http_request", "news_consolidate", "news_feed_scrape",
-                                               "outlook_send"])
+                                               "http_request", "llm_structure_addresses", "news_consolidate",
+                                               "news_feed_scrape", "outlook_send", "site_locations_crawl",
+                                               "url_list_read"])
 
     def test_duplicate_ids(self):
         reg = PluginRegistry([FIXTURES, FIXTURES_DUP])

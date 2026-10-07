@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.11.0 — 2026-10-07
+- **Nuevo ejemplo «Sucursales desde una lista de enlaces»** (`examples/sucursales_desde_enlaces.json`, `docs/SUCURSALES.md`):
+  CSV/TXT de sitios → rastreo completo → IA local → CSV, Excel y resumen por sitio.
+- Plugin **`url_list_read`** (Lista de enlaces): CSV/TXT, detecta columna/separador/codificación, agrega https://, quita duplicados.
+- Plugin **`site_locations_crawl`** (Sitios: rastrear sucursales): recorre cada sitio por prioridad (Ubícanos, Sucursales, Tiendas…,
+  enlaces por distrito, selectores, paginación, sitemap), respeta robots.txt, y extrae candidatos de JSON-LD, JSON de buscadores de tiendas,
+  `<address>`, `data-lat/lng`, mapas incrustados y texto. Incluye `probar_sitio.py` para probar un sitio desde la consola.
+- Plugin **`llm_structure_addresses`** (IA local): servidor compatible con OpenAI (quipullm, LM Studio…) con IP y clave (secreto
+  `quipullm_key`); estructura direcciones, descarta lo que no es un local, lee textos de páginas, marca `verificada` y, si el modelo
+  falla, conserva los datos del rastreo. Solo servidores de la red local salvo autorización expresa.
+- 17 pruebas nuevas (259 en total) con un sitio de prueba y un servidor de IA falso.
+
 ## 0.10.1 — 2026-10-07
 - **Grafo y ejecuciones del historial**: al abrir una ejecución pasada, el grafo ahora se pinta con el estado que tuvo cada paso
   (ok, error, omitido, cancelado…). Al volver a «← Historial» o cambiar de workflow se limpia.

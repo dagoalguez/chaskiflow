@@ -1,0 +1,31 @@
+{
+  "id": "llm_structure_addresses",
+  "name": "IA local: estructurar direcciones",
+  "version": "1.0.0",
+  "author": "ChaskiFlow",
+  "icon": "🧠",
+  "category": "IA local",
+  "description": "Usa un modelo de lenguaje LOCAL con API compatible con OpenAI (quipullm, LM Studio, llama.cpp, Ollama) para separar cada dirección en nombre, dirección, distrito, ciudad, departamento, teléfono y horario; descartar lo que no es un local físico y extraer las direcciones de textos de páginas que no tenían datos estructurados. Por seguridad solo se conecta a equipos de la red local salvo que se autorice lo contrario. Si el modelo no responde, conserva los datos del rastreo.",
+  "kind": "python",
+  "entry": "task.py",
+  "timeout": 7200,
+  "secrets": ["quipullm_key"],
+  "fields": [
+    {"key": "base_url", "label": "URL del servidor", "type": "string", "required": true, "default": "http://127.0.0.1:1234/v1", "placeholder": "http://192.168.1.50:1234/v1", "help": "IP y puerto de quipullm (termina en /v1)"},
+    {"key": "model", "label": "Modelo", "type": "string", "default": "", "help": "Vacío = el primero que informe el servidor (/v1/models)"},
+    {"key": "rows", "label": "Candidatos", "type": "any", "default": null, "help": "Normalmente {{Rastreo.result.rows}}"},
+    {"key": "bloques", "label": "Textos de páginas", "type": "any", "default": null, "help": "Normalmente {{Rastreo.result.bloques}}: sitios donde no hubo datos estructurados"},
+    {"key": "batch_size", "label": "Candidatos por consulta", "type": "number", "default": 6, "min": 1, "max": 30, "help": "Menos = más lento pero más preciso. Con modelos pequeños use 4 a 8"},
+    {"key": "max_items", "label": "Máximo de candidatos a enviar", "type": "number", "default": 400, "min": 1, "max": 20000, "help": "Protege el tiempo: con un modelo lento, 400 candidatos pueden tardar horas"},
+    {"key": "max_tokens", "label": "Máx. tokens de respuesta", "type": "number", "default": 1200, "min": 100, "max": 8000},
+    {"key": "timeout", "label": "Espera por respuesta (s)", "type": "number", "default": 600, "min": 10, "max": 3600, "help": "Los modelos locales en CPU/iGPU pueden tardar minutos"},
+    {"key": "fallback", "label": "Si el modelo falla, conservar el dato del rastreo", "type": "boolean", "default": true},
+    {"key": "allow_remote", "label": "Permitir servidores fuera de la red local", "type": "boolean", "default": false, "advanced": true, "help": "Déjelo apagado: los datos solo deben salir a su servidor local"},
+    {"key": "system_prompt", "label": "Instrucciones adicionales", "type": "text", "default": "", "advanced": true, "help": "Se agregan al final de las instrucciones, p. ej. «Las direcciones son de Perú»"}
+  ],
+  "outputs": [
+    {"key": "rows", "type": "list", "description": "Locales: sitio, pagina_url, nombre, direccion, distrito, ciudad, departamento, telefono, horario, lat, lng, fuente, verificada, metodo"},
+    {"key": "total", "type": "number", "description": "Cantidad de locales"},
+    {"key": "stats", "type": "object", "description": "Consultas al modelo, descartados, fallos y tiempos"}
+  ]
+}

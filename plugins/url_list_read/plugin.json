@@ -1,0 +1,25 @@
+{
+  "id": "url_list_read",
+  "name": "Lista de enlaces: leer CSV/TXT",
+  "version": "1.0.0",
+  "author": "ChaskiFlow",
+  "icon": "🔗",
+  "category": "Entradas",
+  "description": "Lee una lista de sitios web desde un CSV o TXT (una URL por línea, o una columna de un CSV) y la entrega lista para rastrear. Agrega https:// a los dominios sueltos, quita duplicados y reporta las líneas que no son enlaces.",
+  "kind": "python",
+  "entry": "task.py",
+  "timeout": 60,
+  "fields": [
+    {"key": "file_path", "label": "Archivo (.csv o .txt)", "type": "string", "required": true, "placeholder": "C:\\datos\\enlaces.csv"},
+    {"key": "column", "label": "Columna de la URL", "type": "string", "default": "", "help": "Solo CSV. Vacío = la primera columna que contenga enlaces o dominios"},
+    {"key": "name_column", "label": "Columna del nombre", "type": "string", "default": "", "help": "Opcional. Vacío = se usa el dominio como nombre"},
+    {"key": "delimiter", "label": "Separador", "type": "string", "default": "", "help": "Vacío = detecta (; , tabulador |)"},
+    {"key": "limit", "label": "Máximo de enlaces", "type": "number", "default": 0, "min": 0, "max": 100000, "help": "0 = todos"}
+  ],
+  "outputs": [
+    {"key": "items", "type": "list", "description": "Lista de {name, url}"},
+    {"key": "urls", "type": "list", "description": "Solo las URL"},
+    {"key": "total", "type": "number", "description": "Cantidad de enlaces válidos"},
+    {"key": "skipped", "type": "list", "description": "Líneas descartadas y el motivo"}
+  ]
+}

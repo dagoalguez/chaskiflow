@@ -1,0 +1,37 @@
+{
+  "id": "site_locations_crawl",
+  "name": "Sitios: rastrear sucursales y direcciones",
+  "version": "1.0.0",
+  "author": "ChaskiFlow",
+  "icon": "📍",
+  "category": "Sitios web",
+  "description": "Recorre cada sitio de la lista como lo haría una persona: entra por los enlaces tipo «Ubícanos», «Sucursales», «Tiendas», «Contacto», sigue los enlaces por distrito o los selectores desplegables, lee el JSON de los buscadores de tiendas, los mapas incrustados, las etiquetas de dirección y el texto. Entrega los candidatos de dirección de cada sitio (sin IA) y los textos de las páginas de ubicación para que un modelo local los estructure.",
+  "kind": "python",
+  "entry": "task.py",
+  "timeout": 7200,
+  "fields": [
+    {"key": "sites", "label": "Sitios", "type": "any", "required": true, "help": "Normalmente {{Lista.result.items}}. También acepta una lista de URL o texto con una URL por línea"},
+    {"key": "max_pages", "label": "Páginas por sitio", "type": "number", "default": 40, "min": 1, "max": 500, "help": "Tope de páginas que se leen en cada sitio. Se leen primero las más prometedoras"},
+    {"key": "max_depth", "label": "Profundidad", "type": "number", "default": 3, "min": 0, "max": 8, "help": "Clics desde la portada"},
+    {"key": "delay", "label": "Pausa entre páginas (s)", "type": "number", "default": 0.4, "min": 0, "max": 30, "help": "Cortesía con el sitio"},
+    {"key": "max_seconds", "label": "Tiempo máximo por sitio (s)", "type": "number", "default": 240, "min": 10, "max": 3600},
+    {"key": "workers", "label": "Sitios en paralelo", "type": "number", "default": 3, "min": 1, "max": 8},
+    {"key": "keywords", "label": "Palabras de ubicación", "type": "text", "default": "", "advanced": true, "help": "Vacío = ubícanos, sucursales, tiendas, locales, agencias, oficinas, dirección, dónde estamos, contacto, puntos de venta, sede, mapa… Una por línea o separadas por coma"},
+    {"key": "subdomains", "label": "Incluir subdominios", "type": "boolean", "default": true, "advanced": true},
+    {"key": "respect_robots", "label": "Respetar robots.txt", "type": "boolean", "default": true, "advanced": true},
+    {"key": "probe_paths", "label": "Probar rutas comunes", "type": "boolean", "default": true, "advanced": true, "help": "Si la portada no tiene ningún enlace de ubicación, prueba /sucursales, /tiendas, /contacto…"},
+    {"key": "text_block_chars", "label": "Texto por página para el modelo (caracteres)", "type": "number", "default": 3500, "min": 500, "max": 20000, "advanced": true},
+    {"key": "verify_ssl", "label": "Verificar SSL", "type": "boolean", "default": true, "advanced": true},
+    {"key": "ca_bundle", "label": "Archivo CA (opcional)", "type": "string", "default": "", "advanced": true, "help": "Para proxys que re-firman SSL"},
+    {"key": "proxy", "label": "Proxy (opcional)", "type": "string", "default": "", "advanced": true, "placeholder": "http://proxy:8080 (vacío = el del sistema)"},
+    {"key": "timeout", "label": "Tiempo de espera por página (s)", "type": "number", "default": 25, "min": 3, "max": 120, "advanced": true},
+    {"key": "user_agent", "label": "User-Agent (opcional)", "type": "string", "default": "", "advanced": true}
+  ],
+  "outputs": [
+    {"key": "rows", "type": "list", "description": "Candidatos de dirección: sitio, pagina_url, metodo, nombre, direccion, telefono, lat, lng, contexto"},
+    {"key": "bloques", "type": "list", "description": "Texto de las páginas de ubicación de sitios con pocos datos estructurados (para el modelo)"},
+    {"key": "sites", "type": "list", "description": "Resumen por sitio: páginas leídas, páginas de ubicación, candidatos, errores"},
+    {"key": "total", "type": "number", "description": "Cantidad de candidatos"},
+    {"key": "sin_resultados", "type": "list", "description": "Sitios donde no se encontró ninguna dirección"}
+  ]
+}
