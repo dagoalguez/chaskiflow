@@ -182,6 +182,14 @@ class Scan(Base):
         self.assertEqual(b[("ALFA", "2022")]["deteccion"], "texto")
         self.assertEqual(b[("ALFA", "2022")]["metodo"], "texto")
 
+    def test_url_without_v1_is_completed(self):
+        with FakeLLM() as llm:
+            llm.base = llm.base[:-len("/v1")]                                    # http://host:puerto (como lo escribió el usuario)
+            res = self.scan(self.folder, llm)
+            calls = llm.vision_calls
+        self.assertEqual(calls, 3)
+        self.assertEqual(self.by(res)[("ALFA", "2024")]["deteccion"], "IA")
+
     def test_scanned_pages_are_read_by_the_vision_model_only_when_there_is_no_text(self):
         with FakeLLM() as llm:
             res = self.scan(self.folder, llm)

@@ -125,6 +125,18 @@ def _clean_obj(o):
     return out
 
 
+
+def _norm_base(base):
+    """http://host:1234 -> http://host:1234/v1 (la API OpenAI-compatible vive en /v1)."""
+    base = base.strip().rstrip("/")
+    if base.endswith("/chat/completions"):
+        base = base[:-len("/chat/completions")]
+    p = urlparse(base)
+    if p.path in ("", "/"):
+        base += "/v1"
+    return base
+
+
 def _is_true(v):
     return v is True or str(v).strip().lower() in ("true", "si", "sí", "1", "yes")
 
@@ -133,6 +145,7 @@ def run(config, ctx):
     base = (config.get("base_url") or "").strip()
     if not re.match(r"^https?://", base):
         raise RuntimeError("La URL del servidor debe empezar con http:// o https:// (ej. http://192.168.1.50:1234/v1)")
+    base = _norm_base(base)
     host = urlparse(base).hostname or ""
     if not config.get("allow_remote") and not _is_local(host):
         raise RuntimeError("«%s» no es un equipo de la red local. Por seguridad los datos solo se envían a servidores locales; "

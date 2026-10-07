@@ -74,6 +74,18 @@ def _is_local(host):
     return ip.is_private or ip.is_loopback or ip.is_link_local
 
 
+
+def _norm_base(base):
+    """http://host:1234 -> http://host:1234/v1 (la API OpenAI-compatible vive en /v1)."""
+    base = base.strip().rstrip("/")
+    if base.endswith("/chat/completions"):
+        base = base[:-len("/chat/completions")]
+    p = urlparse(base)
+    if p.path in ("", "/"):
+        base += "/v1"
+    return base
+
+
 class Vision:
     def __init__(self, base, model, key, timeout):
         self.base, self.model, self.key, self.timeout = base.rstrip("/"), model, key, timeout
@@ -333,6 +345,7 @@ def run(config, ctx):
                 raise RuntimeError("La URL del servidor de IA debe empezar con http:// o https://")
             if not config.get("allow_remote") and not _is_local(urlparse(base).hostname):
                 raise RuntimeError("«%s» no es un equipo de la red local. Por seguridad las páginas solo se envían a servidores locales" % urlparse(base).hostname)
+            base = _norm_base(base)
             vis = Vision(base, (config.get("model") or "").strip(), ctx.secrets.get("quipullm_key") or "", int(config.get("ia_timeout") or 300))
             vis.pick_model()
             ctx.log("IA para páginas sin texto: %s en %s" % (vis.model, base))

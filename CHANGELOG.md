@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.13.1 — 2026-10-07
+- Corrección: si la URL del servidor de IA se escribe sin `/v1` (p. ej. `http://localhost:1234`), `pdf_keyword_scan` y `llm_structure_addresses` la completan solos; antes daban «HTTP 404 Route not found: /chat/completions».
+
 ## 0.13.0 — 2026-10-07
 - **Ejemplo «SMV: fusiones, escisiones y reorganizaciones»** (`examples/smv_fusiones_escisiones.json`, `docs/SMV_FUSIONES.md`).
 - Plugin nuevo **`smv_financial_download`**: busca en el portal *Información Financiera* de la SMV cada empresa y año (Individual/Consolidada, Anual) y descarga los «Estados Financieros y Dictamen». Retoma sin repetir, reintenta, sigue ante errores y admite «Tiempo máximo total». `probar_smv.py` para probar una empresa desde la consola.
