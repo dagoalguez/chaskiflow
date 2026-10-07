@@ -59,7 +59,7 @@
         "data": "{{Escaneo.result.rows}}",
         "output_dir": "{{vars.carpeta}}",
         "filename": "fusiones_%Y-%m-%d",
-        "columns": "empresa,anio,archivo,identificado,palabras,paginas_hallazgo,deteccion,contexto,metodo,paginas,paginas_con_texto,paginas_sin_texto,paginas_leidas_ia,paginas_sin_leer,copiado_a,nota,ruta",
+        "columns": "empresa,anio,archivo,identificado,palabras,paginas_hallazgo,deteccion,contexto,metodo,paginas,paginas_con_texto,paginas_sin_texto,paginas_leidas_ia,paginas_sin_leer,copiado_a,texto_archivo,texto_completo,texto_1,texto_2,texto_3,texto_4,texto_5,nota,ruta",
         "rename": {
           "empresa": "Empresa",
           "anio": "Año",
@@ -77,7 +77,14 @@
           "paginas_sin_leer": "Sin leer",
           "copiado_a": "Copiado a",
           "nota": "Nota",
-          "ruta": "Ruta original"
+          "ruta": "Ruta original",
+          "texto_archivo": "Archivo de texto",
+          "texto_completo": "Texto completo en la tabla",
+          "texto_1": "Texto 1",
+          "texto_2": "Texto 2",
+          "texto_3": "Texto 3",
+          "texto_4": "Texto 4",
+          "texto_5": "Texto 5"
         }
       },
       "on_error": "stop",
@@ -95,7 +102,7 @@
         "output_dir": "{{vars.carpeta}}",
         "filename": "fusiones_%Y-%m-%d",
         "sheet_name": "Revisión",
-        "columns": "empresa,anio,archivo,identificado,palabras,paginas_hallazgo,deteccion,contexto,metodo,paginas,paginas_con_texto,paginas_sin_texto,paginas_leidas_ia,paginas_sin_leer,copiado_a,nota,ruta",
+        "columns": "empresa,anio,archivo,identificado,palabras,paginas_hallazgo,deteccion,contexto,metodo,paginas,paginas_con_texto,paginas_sin_texto,paginas_leidas_ia,paginas_sin_leer,copiado_a,texto_archivo,texto_completo,texto_1,texto_2,texto_3,texto_4,texto_5,nota,ruta",
         "rename": {
           "empresa": "Empresa",
           "anio": "Año",
@@ -113,7 +120,14 @@
           "paginas_sin_leer": "Sin leer",
           "copiado_a": "Copiado a",
           "nota": "Nota",
-          "ruta": "Ruta original"
+          "ruta": "Ruta original",
+          "texto_archivo": "Archivo de texto",
+          "texto_completo": "Texto completo en la tabla",
+          "texto_1": "Texto 1",
+          "texto_2": "Texto 2",
+          "texto_3": "Texto 3",
+          "texto_4": "Texto 4",
+          "texto_5": "Texto 5"
         }
       },
       "on_error": "stop",

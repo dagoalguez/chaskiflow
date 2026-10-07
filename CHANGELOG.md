@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.5 — 2026-10-07
+- `pdf_keyword_scan`: guarda el **texto limpio completo** de cada PDF (`TEXTOS/Empresa/Año/archivo.txt`, con marcas `[p. N]`) y lo reparte en las columnas `texto_1…texto_5` (≈30 000 caracteres por celda; configurable). `texto_completo` indica si todo cupo en la tabla. Las columnas se agregaron al ejemplo (CSV y Excel).
+- Nuevo `probar_pdf.py` (diagnóstico): por página, texto e imagen y, si es JBIG2, los tipos de segmento. Sirve para decidir si se puede leer ese formato sin instalar nada.
+
 ## 0.13.4 — 2026-10-07
 - `pdf_keyword_scan`: la IA se decide **por archivo**. Si alguna página del PDF trae texto, se busca solo en el texto (ninguna página usa IA). Solo un PDF con cero texto (todo escaneado) manda sus páginas a la IA, una por una.
 

@@ -48,3 +48,11 @@ Con proxy que re-firma SSL agregue `--sin-ssl`.
 - Las carpetas no pueden terminar en punto: «ALICORP S.A.A.» queda como «ALICORP S.A.A».
 - Todas las empresas × 5 años son más de 1 000 consultas; con 1 s de pausa son ~20 minutos más las descargas.
 - Se incluye `pypdf` (BSD) para leer PDF sin instalar nada; no abre PDF cifrados con AES ni dañados (quedan marcados como error).
+
+## Texto de cada PDF
+
+El plugin guarda el texto limpio (sin guiones de fin de línea ni saltos) en `TEXTOS/Empresa/Año/archivo.txt`, con marcas `[p. N]`, y lo reparte en las columnas `texto_1` … `texto_5` (unos 30 000 caracteres cada una; ajustable en «Columnas de texto» y «Caracteres por celda»). Si todo cupo, `texto_completo` dice «sí»; si no, el texto completo está en el archivo `.txt`. Los PDF escaneados leídos por IA no tienen texto, solo hallazgos.
+
+## Diagnóstico de un PDF
+
+`python plugins\pdf_keyword_scan\probar_pdf.py archivo.pdf` muestra por página cuánto texto trae y qué imagen tiene (formato, tamaño y, en JBIG2, los tipos de segmento).

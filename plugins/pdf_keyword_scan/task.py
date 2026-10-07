@@ -33,6 +33,26 @@ def prep(text):
     return re.sub(r"-[ \t]*\r?\n[ \t]*", "", t)         # palabras partidas con guion al final de línea
 
 
+def limpiar(text):
+    """Texto limpio de una página: sin guiones de fin de línea, sin saltos ni espacios repetidos."""
+    t = prep(text)
+    t = re.sub(r"[\x00-\x08\x0b-\x1f\x7f]", " ", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def trozos(text, n, size):
+    """Parte el texto en hasta n trozos de como máximo `size` caracteres, cortando en espacios."""
+    out, i = [], 0
+    while i < len(text) and len(out) < n:
+        j = min(len(text), i + size)
+        if j < len(text):
+            k = text.rfind(" ", i + size // 2, j)
+            j = k if k > 0 else j
+        out.append(text[i:j].strip())
+        i = j
+    return out, i >= len(text.rstrip())
+
+
 def term_regex(term):
     words = [w for w in re.split(r"\s+", fold(term).strip()) if w]
     if not words:
@@ -253,6 +273,7 @@ def scan_pdf(item, terms, terms_txt, vis, opt, ctx, deadline):
     # Decisión por ARCHIVO: si alguna página trae texto, el PDF es de texto y NO se usa IA en ninguna página.
     # Solo un PDF con cero texto (todo escaneado) pasa por la IA, página por página.
     texts = [pdftext.page_text(p) for p in pages]
+    res["_texto"] = []
     min_chars = opt["min_chars"]
     pdf_con_texto = any(len(re.sub(r"\s+", "", t)) >= min_chars for t in texts)
     res["tipo"] = "texto" if pdf_con_texto else "escaneado"
@@ -265,6 +286,8 @@ def scan_pdf(item, terms, terms_txt, vis, opt, ctx, deadline):
         text = texts[i]
         if len(re.sub(r"\s+", "", text)) >= opt["min_chars"]:
             res["con_texto"] += 1
+            if opt.get("guardar_texto"):
+                res["_texto"].append("[p. %d] %s" % (i + 1, limpiar(text)))
             for term, (n, frag) in find_terms(text, terms).items():
                 h = res["hits"].setdefault(term, {"n": 0, "paginas": [], "contexto": [], "fuente": "texto"})
                 h["n"] += n
@@ -364,8 +387,11 @@ def run(config, ctx):
         else:
             ctx.log("AVISO: sin URL del servidor de IA; las páginas sin texto (escaneadas) NO se podrán leer")
     opt = {"min_chars": int(config.get("min_chars") or 25), "ia_max_paginas": int(config.get("ia_max_paginas") or 60),
-           "max_pdf_seconds": float(config.get("max_pdf_seconds") or 600)}
-    cfg = {"t": [t for t, _ in terms], "ia": bool(vis), "m": vis.model if vis else "", "min": opt["min_chars"], "iamax": opt["ia_max_paginas"]}
+           "max_pdf_seconds": float(config.get("max_pdf_seconds") or 600),
+           "guardar_texto": config.get("guardar_texto") is not False}
+    ncols = max(0, min(int(config.get("texto_columnas") if config.get("texto_columnas") is not None else 5), 20))
+    csize = max(1000, min(int(config.get("texto_max_celda") or 30000), 32000))
+    cfg = {"gt": opt["guardar_texto"], "t": [t for t, _ in terms], "ia": bool(vis), "m": vis.model if vis else "", "min": opt["min_chars"], "iamax": opt["ia_max_paginas"]}
     cfgh = _cfg_hash(cfg)
     cache_path = os.path.join(out_dir, "_cache_escaneo.json")
     cache = {}
@@ -400,6 +426,14 @@ def run(config, ctx):
                              "identificado": "", "metodo": "pendiente", "nota": "tiempo máximo total agotado; vuelva a ejecutar"})
                 continue
             res = scan_pdf(it, terms, [t for t, _ in terms], vis, opt, ctx, deadline)
+            txt = res.pop("_texto", None)
+            if txt and not res["error"]:
+                tdir = os.path.join(out_dir, "TEXTOS", _safe(it["empresa"]), _safe(it["anio"], 10))
+                os.makedirs(tdir, exist_ok=True)
+                tpath = os.path.join(tdir, os.path.splitext(os.path.basename(it["path"]))[0] + ".txt")
+                with open(tpath, "w", encoding="utf-8") as fh:
+                    fh.write("\n\n".join(txt))
+                res["texto_ruta"] = tpath
             if not res["error"] and not res.get("ia_caida"):
                 cache[key] = {"sig": sig, "res": res}
                 _atomic_json(cache_path, cache)
@@ -433,8 +467,22 @@ def run(config, ctx):
         nota = "; ".join(res["notas"])
         if res["no_leidas"] and hits:
             nota = ("%d página(s) sin leer. " % res["no_leidas"]) + nota
+        extra = {}
+        tr = res.get("texto_ruta")
+        if tr and ncols and os.path.isfile(tr):
+            try:
+                with open(tr, encoding="utf-8") as fh:
+                    full = fh.read().replace("\n\n", " ")
+                parts, completo = trozos(full, ncols, csize)
+                for ci, part in enumerate(parts, 1):
+                    extra["texto_%d" % ci] = part
+                extra["texto_completo"] = "sí" if completo else "no (ver archivo de texto)"
+            except OSError:
+                pass
+        if tr:
+            extra["texto_archivo"] = tr
         rows.append({"empresa": it["empresa"], "anio": it["anio"], "archivo": os.path.basename(it["path"]), "ruta": it["path"],
-                     "identificado": ident, "palabras": palabras, "paginas_hallazgo": ", ".join(str(p) for p in pgs[:40]),
+                     **extra, "identificado": ident, "palabras": palabras, "paginas_hallazgo": ", ".join(str(p) for p in pgs[:40]),
                      "deteccion": "+".join(fuentes), "contexto": " | ".join(c for h in hits.values() for c in h["contexto"][:1])[:600],
                      "paginas": res["paginas"], "paginas_con_texto": res["con_texto"], "paginas_sin_texto": res["sin_texto"],
                      "paginas_leidas_ia": res["leidas_ia"], "paginas_sin_leer": res["no_leidas"], "metodo": metodo,

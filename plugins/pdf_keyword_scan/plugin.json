@@ -13,7 +13,7 @@
   "fields": [
     {"key": "files", "label": "Archivos", "type": "any", "default": null, "help": "Normalmente {{Descarga.result.archivos}} (trae empresa y año). También una lista de rutas, o déjelo vacío y use «Carpeta»"},
     {"key": "folder", "label": "Carpeta con PDF (opcional)", "type": "string", "default": "", "help": "Revisa todos los PDF de esa carpeta y sus subcarpetas"},
-    {"key": "output_dir", "label": "Carpeta de salida", "type": "string", "required": true, "help": "Aquí se crean IDENTIFICADOS/ y REVISAR_MANUAL/"},
+    {"key": "output_dir", "label": "Carpeta de salida", "type": "string", "required": true, "help": "Aquí se crean IDENTIFICADOS/, REVISAR_MANUAL/ y TEXTOS/"},
     {"key": "keywords", "label": "Palabras a buscar", "type": "text", "default": "fusión\nescisión\nreorganización societaria", "help": "Una por línea"},
     {"key": "mover", "label": "Mover en vez de copiar", "type": "boolean", "default": false, "help": "Apagado = copia (los originales se quedan donde están)"},
     {"key": "separar_no_leidos", "label": "Copiar a REVISAR_MANUAL los que no se pudieron leer", "type": "boolean", "default": true},
@@ -22,6 +22,9 @@
     {"key": "model", "label": "Modelo con visión", "type": "string", "default": "", "help": "Ej. lfm2.5-vl-1.6b. Vacío = el primero que informe el servidor"},
     {"key": "ia_max_paginas", "label": "Máx. páginas por PDF para la IA", "type": "number", "default": 60, "min": 1, "max": 1000, "help": "Cada página escaneada puede tardar de 15 a 30 s con un modelo local"},
     {"key": "max_total_seconds", "label": "Tiempo máximo total (s)", "type": "number", "default": 0, "min": 0, "max": 43000, "help": "0 = sin límite propio (el tope del paso es 12 horas). Al agotarse termina bien; al volver a ejecutar continúa sin repetir lo ya revisado"},
+    {"key": "guardar_texto", "label": "Guardar el texto limpio de cada PDF", "type": "boolean", "default": true, "help": "Crea TEXTOS/Empresa/Año/archivo.txt con el texto completo (con marcas [p. N]) y lo pone en las columnas texto_1…texto_N"},
+    {"key": "texto_max_celda", "label": "Caracteres por celda de texto", "type": "number", "default": 30000, "min": 1000, "max": 32000, "advanced": true},
+    {"key": "texto_columnas", "label": "Columnas de texto en la tabla", "type": "number", "default": 5, "min": 0, "max": 20, "help": "Cada celda admite ~32 000 caracteres; el texto se reparte en esta cantidad de columnas (0 = ninguna). El archivo .txt siempre trae el texto completo"},
     {"key": "reprocesar", "label": "Revisar de nuevo aunque ya se haya revisado", "type": "boolean", "default": false},
     {"key": "ia_timeout", "label": "Espera por respuesta de la IA (s)", "type": "number", "default": 300, "min": 10, "max": 3600, "advanced": true},
     {"key": "min_chars", "label": "Caracteres mínimos para considerar que una página tiene texto", "type": "number", "default": 25, "min": 1, "max": 1000, "advanced": true},

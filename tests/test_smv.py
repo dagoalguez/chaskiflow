@@ -276,6 +276,38 @@ class Scan(Base):
         self.assertIn("la IA no respondió bien", b[("ALFA", "2024")]["nota"])
         self.assertEqual(b[("ALFA", "2022")]["identificado"], "sí")             # el texto sigue funcionando
 
+    def test_clean_text_is_saved_and_split_in_columns(self):
+        res = self.scan(self.folder, texto_columnas=3, texto_max_celda=1000)
+        r = self.by(res)[("ALFA", "2023")]
+        self.assertTrue(r["texto_1"].startswith("[p. 1]"))
+        self.assertIn("reorganización societaria", r["texto_1"])                # sin guion ni salto de línea
+        self.assertNotIn("\n", r["texto_1"])
+        self.assertEqual(r["texto_completo"], "sí")
+        full = Path(r["texto_archivo"]).read_text(encoding="utf-8")
+        self.assertIn("reorganización societaria", full)
+        self.assertNotIn("texto_1", self.by(res)[("ALFA", "2024")])             # escaneado sin IA: no hay texto
+        res2 = self.scan(self.folder)                                            # reutiliza el caché y conserva las columnas
+        self.assertIn("reorganización societaria", self.by(res2)[("ALFA", "2023")]["texto_1"])
+
+    def test_text_columns_can_be_turned_off(self):
+        res = self.scan(self.folder, guardar_texto=False)
+        self.assertNotIn("texto_archivo", self.by(res)[("ALFA", "2023")])
+        self.assertFalse((Path(self.folder) / "TEXTOS").exists())
+
+    def test_chunking_cuts_at_spaces_and_reports_truncation(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("kw_task", PLUGINS / "pdf_keyword_scan" / "task.py")
+        sys.path.insert(0, str(PLUGINS / "pdf_keyword_scan"))
+        try:
+            m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+        finally:
+            sys.path.pop(0)
+        parts, ok = m.trozos("palabra " * 300, 2, 1000)
+        self.assertEqual(len(parts), 2)
+        self.assertTrue(all(len(p) <= 1000 and p.endswith("palabra") for p in parts))
+        self.assertFalse(ok)
+        self.assertTrue(m.trozos("hola mundo", 5, 1000)[1])
+
     def test_dead_ai_server_does_not_abort_text_pdfs(self):
         with FakeLLM(mode="http500") as llm:
             res = self.scan(self.folder, llm)
