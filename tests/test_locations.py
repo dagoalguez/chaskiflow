@@ -120,6 +120,23 @@ class Crawl(Base):
     def test_no_sites_is_clear_error(self):
         self.assertIn("No hay sitios", self.run_node("site_locations_crawl", {"sites": []})["error"])
 
+    def test_total_time_limit_ends_cleanly_with_what_was_collected(self):
+        with Site() as s:
+            r = self.run_node("site_locations_crawl", {"sites": [s.base + "/", s.base + "/?b", s.base + "/?c"], "delay": 1,
+                                                       "workers": 1, "max_pages": 3, "max_total_seconds": 1})
+        self.assertEqual(r["status"], "ok", r["error"])
+        res = r["result"]
+        self.assertEqual(len(res["sites"]), 3)
+        self.assertTrue(res["sites"][0]["candidatos"] > 0)                       # el primero sí se procesó
+        pend = [x for x in res["sites"] if x["cortado"] == "tiempo total"]
+        self.assertTrue(pend, res["sites"])                                       # los demás quedaron marcados
+        self.assertIn("tiempo máximo total", pend[0]["errores"][0])
+
+    def test_step_timeout_allows_long_lists(self):
+        reg = PluginRegistry([PLUGINS])
+        for pid in ("site_locations_crawl", "llm_structure_addresses"):
+            self.assertGreaterEqual(reg.get(pid).timeout, 28800, pid)
+
 
 class Llm(Base):
     ROWS = [
@@ -151,6 +168,15 @@ class Llm(Base):
         inv = by["Av. Los Delfines 999, Marte"]
         self.assertEqual(inv["verificada"], "no")                          # el modelo inventó una dirección que no está en el texto
         self.assertEqual(res["stats"]["sin_verificar"], 1)
+
+    def test_total_time_limit_keeps_crawl_data_for_the_rest(self):
+        with FakeLLM() as srv:
+            r = self.ia(srv, max_total_seconds=0.000001, batch_size=1)
+        self.assertEqual(r["status"], "ok", r["error"])
+        res = r["result"]
+        self.assertEqual(res["total"], 3)                                          # nada se pierde: se conserva el dato del rastreo
+        self.assertTrue(all(x["fuente"] == "rastreo" for x in res["rows"]))
+        self.assertEqual(res["stats"]["sin_consultar_por_tiempo"], 3)
 
     def test_blocks_become_rows(self):
         bl = [{"sitio": "B", "sitio_url": "http://b", "pagina_url": "http://b/c", "texto": "Contáctanos\nSede central: Av. Javier Prado Este 4200, Santiago de Surco\nHorario 9 a 6"}]

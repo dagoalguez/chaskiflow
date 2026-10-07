@@ -2,6 +2,7 @@
 
 import re
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse
 
@@ -42,7 +43,16 @@ def run(config, ctx):
     total = len(sites)
     ctx.log("Rastreando %d sitio(s): hasta %d página(s) cada uno, profundidad %d" % (total, opts["max_pages"], opts["max_depth"]))
 
+    limit = float(config.get("max_total_seconds") or 0)
+    t0 = time.time()
+
     def one(s):
+        if limit and time.time() - t0 > limit:
+            with lock:
+                done[0] += 1
+                ctx.progress(done[0], total, s["name"])
+            return {"sitio": s["name"], "sitio_url": s["url"], "paginas": 0, "paginas_ubicacion": [], "errores": ["No procesado: se alcanzó el tiempo máximo total"],
+                    "bloqueadas_robots": 0, "rows": [], "bloques": [], "cortado": "tiempo total", "segundos": 0, "pendiente": True}
         try:
             res = crawl_site(s["name"], s["url"], opts, fetcher)
         except Exception as e:  # un sitio con problemas no detiene al resto
@@ -67,5 +77,8 @@ def run(config, ctx):
                         "bloqueadas_por_robots": r["bloqueadas_robots"], "cortado": r.get("cortado", ""), "segundos": r.get("segundos", 0)})
         if not r["rows"]:
             empty.append(r["sitio"])
+    pend = [r["sitio"] for r in results if r.get("pendiente")]
+    if pend:
+        ctx.log("AVISO: se alcanzó el tiempo máximo total (%d s); %d sitio(s) quedaron sin procesar. Vuelva a ejecutar con ellos." % (limit, len(pend)))
     ctx.log("Total: %d candidato(s) en %d sitio(s); sin resultados: %d" % (len(rows), total, len(empty)))
     return {"rows": rows, "bloques": bloques, "sites": summary, "total": len(rows), "sin_resultados": empty}

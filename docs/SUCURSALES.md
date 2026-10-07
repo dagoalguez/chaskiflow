@@ -57,3 +57,9 @@ metodo (jsonld/json/address/data/texto/mapa/texto_pagina), pagina_url, sitio_url
 - Probado con un sitio de prueba y un servidor de IA falso (Linux). **No se ha probado con sitios reales ni con quipullm real.**
   Primero use `python plugins\site_locations_crawl\probar_sitio.py https://sitio.pe` para ver qué encuentra en un sitio.
 - Sea considerado: no rastree sitios ajenos con muchas páginas ni con pausas cortas; respete sus términos de uso.
+
+## Muchos enlaces y tiempos
+
+- «Tiempo máximo por sitio» (rastreo, 240 s por defecto) limita cada sitio. Con 100 sitios y 3 en paralelo, el peor caso es ~2 h 15 min.
+- «Tiempo máximo total» (rastreo e IA; 0 = sin límite propio) corta de forma ordenada: entrega lo recogido y marca los sitios pendientes («tiempo total») para volver a lanzarlos. El tope duro de cada paso es de 12 horas.
+- Con quipullm (lento), baje «Máximo de candidatos a enviar» o use «Tiempo máximo total» en el paso de IA.

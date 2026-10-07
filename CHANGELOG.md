@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.7 — 2026-10-07
+- **Corrige «tiempo excedido de 7200 s» en el rastreo con muchos enlaces.** Ese límite era el tope de todo el paso (2 h), no un ajuste; con ~100 sitios se superaba y se perdía lo recogido. Ahora el tope del paso es de **12 h** en `site_locations_crawl` y `llm_structure_addresses`.
+- Campo nuevo **«Tiempo máximo total (s)»** en ambos plugins (0 = sin límite propio). Al agotarse, el paso termina bien: no inicia más sitios (quedan marcados «tiempo total» en el resumen) o no envía más consultas al modelo (conserva el dato del rastreo), y avisa en el registro.
+- Los dos plugins cambian de huella: hay que **volver a aprobarlos** en Plugins.
+
 ## 0.11.6 — 2026-10-07
 - **Al volver a un workflow que está ejecutándose, la pantalla se reconecta sola** al avance en vivo (grafo con el nodo en curso, registros, botón Detener). Antes había que abrir la ejecución desde el historial.
 - La lista lateral se refresca cada pocos segundos mientras haya ejecuciones en curso (el punto pasa de azul a verde/rojo al terminar sin tocar nada) y marca el workflow apenas se lanza.

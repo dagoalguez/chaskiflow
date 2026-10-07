@@ -174,8 +174,15 @@ def run(config, ctx):
         batches.append(("bloque", [b]))
     total = max(1, len(batches))
     ctx.log("Modelo '%s' en %s: %d consulta(s) (%d candidatos, %d texto(s) de página)" % (llm.model, base, len(batches), len(todo), len(bloques)))
+    limit = float(config.get("max_total_seconds") or 0)
+    cortado = 0
     for n, (kind, items) in enumerate(batches, start=1):
         ctx.progress(n, total, "IA %d/%d" % (n, total))
+        if limit and time.time() - t0 > limit:       # tiempo total agotado: no se consulta más al modelo
+            cortado += 1
+            if kind == "rows" and fallback:
+                out.extend(heuristic(r) for r in items)
+            continue
         try:
             if kind == "rows":
                 frag = [{"id": j, "texto": (r.get("contexto") or "%s %s" % (r.get("nombre", ""), r.get("direccion", "")))[:400]} for j, r in enumerate(items)]
@@ -263,6 +270,9 @@ def run(config, ctx):
         seen.add(key)
         final.append({k: d.get(k, "") if k not in ("lat", "lng") else d.get(k) for k in OUT_COLS})
     stats["segundos"] = round(time.time() - t0, 1)
+    stats["sin_consultar_por_tiempo"] = cortado
+    if cortado:
+        ctx.log("AVISO: se alcanzó el tiempo máximo total; %d consulta(s) no se enviaron al modelo (se conservó el dato del rastreo)." % cortado)
     ctx.log("Listo: %d local(es); descartados %d; no verificados %d; fallos %d; %.0f s" % (
         len(final), stats["descartados"], stats["sin_verificar"], stats["fallos"], stats["segundos"]))
     return {"rows": final, "total": len(final), "stats": stats}
