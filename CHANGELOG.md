@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.11.2 — 2026-10-07
+- Licencia cambiada de MIT a **Apache-2.0** (igual que quipullm). Créditos: autor Diego Guevara B.; contribuciones: Claude (`NOTICE`, `AUTHORS`, `README`).
+
 ## 0.11.1 — 2026-10-07
 - El prompt «Crear con IA» (`docs/PROMPT_CREAR_PLUGIN.txt`) ya no menciona dónde corre ChaskiFlow; se conservan las reglas técnicas del entorno.
 

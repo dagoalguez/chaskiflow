@@ -3,7 +3,7 @@
 Honestas y a propósito: aquí va lo que **no** hace o **no se ha medido**.
 
 ## No implementado todavía
-- Publicación en GitHub (falta decidir nombre definitivo y licencia: hoy MIT / «ChaskiFlow» provisional).
+- Publicación en GitHub (licencia Apache-2.0; falta verificar que el nombre «ChaskiFlow» no choque con otro proyecto).
 - Importador G1G: no soporta bucles (`foreach`/grupos) ni tareas sin plugin equivalente; se importan sueltas con aviso.
 - Sin bucles `foreach` ni nodos condicionales (el grafo es un DAG simple).
 - Sin cambio de contraseña "olvidada" por correo: el admin la restablece en Usuarios.

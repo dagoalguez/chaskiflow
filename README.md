@@ -1,5 +1,7 @@
 # ChaskiFlow
 
+Por **Diego Guevara B.** · Contribuciones: Claude · Licencia Apache-2.0
+
 Plataforma de workflows con **plugins**: armas flujos de tareas (nodos conectados), y quien
 quiera una tarea nueva solo agrega una carpeta a `plugins/`, sin tocar el núcleo.
 
@@ -76,4 +78,6 @@ Requiere Python 3.8 o superior.
 V1 servidor, usuarios, SQLite, formularios · V2 editor visual + paquete de noticias ·
 V3 programación e historial · V4 pulido, plantilla de plugin, validador.
 
-Licencia: MIT.
+Licencia: Apache-2.0 (ver `LICENSE` y `NOTICE`).
+
+Autor: **Diego Guevara B.** · Contribuciones: **Claude**.
