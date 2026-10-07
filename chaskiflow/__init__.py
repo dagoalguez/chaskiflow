@@ -1,7 +1,7 @@
 """ChaskiFlow: plataforma de workflows con plugins. Solo librería estándar."""
 
 APP_NAME = "ChaskiFlow"
-__version__ = "0.11.7"
+__version__ = "0.12.0"
 __author__ = "Diego Guevara B."
 __contributions__ = "Claude"
 __license__ = "Apache-2.0"

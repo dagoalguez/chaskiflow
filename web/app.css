@@ -240,3 +240,14 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .rp-head .btn.icon { margin-left: 6px; }
 
 .gtools .gplay { display: inline-flex; gap: 4px; margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--border); }
+
+/* menú contextual del grafo */
+.ctxmenu { position: fixed; z-index: 1000; min-width: 190px; background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.ctxmenu .mi { display: flex; width: 100%; justify-content: space-between; gap: 18px; align-items: center; background: none; border: none;
+  color: inherit; padding: 7px 10px; border-radius: 6px; text-align: left; cursor: pointer; font: inherit; }
+.ctxmenu .mi:hover:not([disabled]) { background: var(--panel2); }
+.ctxmenu .mi[disabled] { opacity: .45; cursor: default; }
+.ctxmenu .mi.danger { color: var(--err); }
+.ctxmenu .k { color: var(--muted); font-size: 12px; }
+.ctxmenu .sep { height: 1px; background: var(--border); margin: 4px 2px; }

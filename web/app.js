@@ -486,7 +486,7 @@
 
   // ============================================================ vista del workflow
   function renderMain() {
-    stopPolling(true);
+    stopPolling(true); S.gkey = null;
     clear(els.main);
     var w = S.current;
     if (!w) {
@@ -572,6 +572,95 @@
     return l;
   }
   function labelOf(n) { return n.label || n.id; }
+
+  // ---------------------------------------------------------------- copiar / pegar / duplicar pasos
+  // El paso se pega SIN conexiones. Las plantillas {{Paso.result...}} que apuntan a otros pasos se vacían (no hay
+  // a qué referirse sin la conexión); {{vars.x}} se conserva y la variable se crea en el workflow destino si falta.
+  var clip = null;
+  function clipLoad() {
+    if (clip) return clip;
+    try { var raw = window.localStorage.getItem("cf_clip"); if (raw) clip = JSON.parse(raw); } catch (e) { clip = null; }
+    return clip;
+  }
+  function clipCopy(n) {
+    var def = S.current.def, vars = {};
+    clip = { wf: S.current.id, node: JSON.parse(JSON.stringify({ label: n.label, type: n.type, config: n.config || {}, on_error: n.on_error || "stop",
+              enabled: n.enabled !== false, })), pos: n.position, vars: {} };
+    Object.keys(def.variables || {}).forEach(function (k) { vars[k] = def.variables[k]; });
+    clip.vars = vars;
+    try { window.localStorage.setItem("cf_clip", JSON.stringify(clip)); } catch (e) { /* sin almacenamiento: queda en memoria */ }
+  }
+  function scrubRefs(value, st) {
+    if (typeof value === "string") {
+      return value.replace(/\{\{([\s\S]*?)\}\}/g, function (m, expr) {
+        var root = expr.trim().split(/[.\[|\s]/)[0];
+        if (root === "vars") { var mm = /vars\.([^.\[|\s}]+)/.exec(expr); if (mm) st.vars[mm[1]] = 1; return m; }
+        st.removed++; return "";
+      });
+    }
+    if (Array.isArray(value)) return value.map(function (v) { return scrubRefs(v, st); });
+    if (value && typeof value === "object") { var o = {}; Object.keys(value).forEach(function (k) { o[k] = scrubRefs(value[k], st); }); return o; }
+    return value;
+  }
+  // pos = punto del grafo donde pegar (opcional); duplicate = pegar junto al original
+  function clipPaste(pos, around) {
+    var c = clipLoad(), w = S.current, def = w && w.def;
+    if (!c || !def || !canEdit()) return null;
+    if (!S.pmap[c.node.type]) { toast(lang === "es" ? "Ese tipo de paso no está disponible en este servidor" : "That step type is not available"); return null; }
+    var st = { removed: 0, vars: {} }, cfg = scrubRefs(c.node.config, st), addedVars = [];
+    def.variables = def.variables || {};
+    Object.keys(st.vars).forEach(function (k) { if (!(k in def.variables) && k in (c.vars || {})) { def.variables[k] = c.vars[k]; addedVars.push(k); } });
+    var node = { id: newNodeId(), label: uniqueLabel(c.node.label || "Paso"), type: c.node.type, config: cfg, on_error: c.node.on_error || "stop",
+                 enabled: c.node.enabled !== false, position: { x: 0, y: 0 } };
+    var p = pos || (around ? { x: around.x + 40, y: around.y + NH + 30 } : { x: c.pos ? c.pos.x + 40 : 40, y: c.pos ? c.pos.y + NH + 30 : 40 });
+    p = { x: Math.round(p.x), y: Math.round(p.y) };
+    var busy = function () { return def.nodes.some(function (o) { return Math.abs(o.position.x - p.x) < NW && Math.abs(o.position.y - p.y) < NH + 10; }); };
+    while (busy()) p.y += NH + 30;
+    node.position = p;
+    def.nodes.push(node);
+    S.gv.sel = node.id; S.gv.selEdge = null; S.collapsed[node.id] = false;
+    touch(); renderMain();
+    var es = lang === "es", msg = (es ? "Pegado «" : "Pasted «") + node.label + (es ? "» sin conexiones." : "» without connections.");
+    if (st.removed) msg += es ? " Se vaciaron " + st.removed + " referencia(s) a otros pasos: conéctelo y elíjalas de nuevo." : " " + st.removed + " reference(s) to other steps were cleared: connect it and choose them again.";
+    if (addedVars.length) msg += es ? " Variable(s) agregada(s): " + addedVars.join(", ") + "." : " Variable(s) added: " + addedVars.join(", ") + ".";
+    toast(msg, t("undo"), function () {
+      var d2 = S.current && S.current.def; if (!d2) return;
+      d2.nodes = d2.nodes.filter(function (o) { return o.id !== node.id; });
+      addedVars.forEach(function (k) { delete d2.variables[k]; });
+      S.gv.sel = null; touch(); renderMain();
+    }, st.removed ? 12000 : 7000);
+    return node;
+  }
+  var ctxCleanup = null;
+  function closeCtxMenu() { if (ctxCleanup) { ctxCleanup(); ctxCleanup = null; } var m = document.getElementById("ctxmenu"); if (m) m.remove(); }
+  function showCtxMenu(ev, items) {
+    closeCtxMenu();
+    var m = h("div", { class: "ctxmenu", id: "ctxmenu", role: "menu" });
+    items.forEach(function (it) {
+      if (it === "-") { m.appendChild(h("div", { class: "sep" })); return; }
+      var b = h("button", { class: "mi" + (it.danger ? " danger" : ""), role: "menuitem", disabled: it.disabled ? "disabled" : null }, h("span", { text: it.label }), it.key ? h("span", { class: "k", text: it.key }) : null);
+      b.addEventListener("click", function (e) { e.stopPropagation(); closeCtxMenu(); if (!it.disabled) it.fn(); });
+      m.appendChild(b);
+    });
+    document.body.appendChild(m);
+    var r = m.getBoundingClientRect();
+    m.style.left = Math.max(4, Math.min(ev.clientX, window.innerWidth - r.width - 4)) + "px";
+    m.style.top = Math.max(4, Math.min(ev.clientY, window.innerHeight - r.height - 4)) + "px";
+    setTimeout(function () {
+      if (!m.parentNode) return;
+      var down = function (e) { if (!m.contains(e.target)) closeCtxMenu(); };
+      var esc = function (e) { if (e.key === "Escape") closeCtxMenu(); };
+      document.addEventListener("pointerdown", down, true); document.addEventListener("keydown", esc, true); window.addEventListener("blur", closeCtxMenu);
+      ctxCleanup = function () { document.removeEventListener("pointerdown", down, true); document.removeEventListener("keydown", esc, true); window.removeEventListener("blur", closeCtxMenu); };
+    }, 0);
+  }
+  document.addEventListener("keydown", function (ev) {
+    if (!S.gkey || !(ev.ctrlKey || ev.metaKey) || ev.altKey) return;
+    var t0 = ev.target, tag = t0 && t0.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t0 && t0.isContentEditable)) return;
+    if (document.querySelector(".overlay")) return;
+    S.gkey(ev);
+  });
 
   // panel de variables del workflow (se muestra en el inspector cuando no hay nodo seleccionado)
   function varsPanel() {
@@ -916,6 +1005,30 @@
       if (ev.key !== "Delete" && ev.key !== "Backspace") return;
       if (!edit) return;
       deleteSelection();
+    });
+    // Ctrl+C / Ctrl+V / Ctrl+D sobre el grafo (el paso se pega sin conexiones)
+    S.gkey = function (ev) {
+      var k = (ev.key || "").toLowerCase(), n = G.sel && nmap[G.sel];
+      if (k === "c" && n) { ev.preventDefault(); clipCopy(n); toast(lang === "es" ? "Paso copiado: «" + n.label + "». Use Ctrl+V para pegarlo (también en otro workflow)." : "Step copied. Press Ctrl+V to paste it.", null, null, 3500); }
+      else if (k === "v" && edit && clipLoad()) { ev.preventDefault(); clipPaste(null, null); }
+      else if (k === "d" && edit && n) { ev.preventDefault(); clipCopy(n); clipPaste(null, n.position); }
+    };
+    svg.addEventListener("contextmenu", function (ev) {
+      ev.preventDefault();
+      var gn = ev.target.closest ? ev.target.closest(".gnode") : null, es = lang === "es", q = toGraph(ev);
+      if (gn) {
+        var id = Object.keys(nodeEls).filter(function (k) { return nodeEls[k] === gn; })[0], n = nmap[id];
+        if (!n) return;
+        G.sel = id; G.selEdge = null; renderMain();
+        showCtxMenu(ev, [
+          { label: es ? "Duplicar" : "Duplicate", key: "Ctrl+D", disabled: !edit, fn: function () { clipCopy(n); clipPaste(null, n.position); } },
+          { label: es ? "Copiar" : "Copy", key: "Ctrl+C", fn: function () { clipCopy(n); toast(es ? "Paso copiado. Pegue con clic derecho en el fondo o Ctrl+V." : "Step copied.", null, null, 3500); } },
+          "-",
+          { label: es ? "Eliminar" : "Delete", key: "Supr", danger: true, disabled: !edit, fn: function () { G.sel = null; removeNode(n); } }]);
+      } else {
+        showCtxMenu(ev, [
+          { label: es ? "Pegar aquí" : "Paste here", key: "Ctrl+V", disabled: !edit || !clipLoad(), fn: function () { clipPaste({ x: q.x - NW / 2, y: q.y - NH / 2 }, null); } }]);
+      }
     });
     function deleteSelection() {
       if (G.selEdge) { def.edges = def.edges.filter(function (e) { return !(e.source === G.selEdge.s && e.target === G.selEdge.t); }); G.selEdge = null; touch(); renderMain(); }

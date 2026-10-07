@@ -42,7 +42,7 @@ try:
         check("Diego Guevara B." in pg.inner_text(".about-login") and "Apache-2.0" in pg.inner_text(".about-login"), "créditos en el login: " + pg.inner_text(".about-login"))
         pg.fill("#lg-user", "admin"); pg.fill("#lg-pass", "clave-segura-1"); pg.click("button[type=submit]")
         pg.wait_for_selector(".wf-item")
-        check(pg.eval_on_selector(".topbar img.logo", "i => i.complete && i.naturalWidth > 0"), "logo en la barra superior")
+        until(lambda: pg.eval_on_selector(".topbar img.logo", "i => i.complete && i.naturalWidth > 0")); check(True, "logo en la barra superior")
         pg.screenshot(path=OUT + "c5_inicio.png")
         check(pg.get_attribute("link[rel=icon]", "href") == "/static/logo.svg", "icono de la pestaña")
         secs = pg.locator(".sb-foot .sb-sec").all_inner_texts()

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.0 — 2026-10-07
+- **Duplicar, copiar y pegar pasos en el grafo.** Clic derecho en un paso: *Duplicar* (Ctrl+D), *Copiar* (Ctrl+C), *Eliminar*. Clic derecho en el fondo: *Pegar aquí* (Ctrl+V). Se puede pegar también en **otro workflow**.
+- **El paso pegado queda sin conexiones.** Para que no haya referencias rotas, las plantillas que apuntan a otros pasos (`{{Paso.result...}}`) se **vacían** y el aviso lo indica; `{{vars.x}}` se conserva y, si la variable no existe en el workflow destino, se crea con su valor. El nombre se hace único («Rastreo2»).
+- El aviso al pegar trae **Deshacer** (quita el paso y las variables agregadas).
+- Prueba nueva `tests/ui_copy_smoke.py`.
+
 ## 0.11.7 — 2026-10-07
 - **Corrige «tiempo excedido de 7200 s» en el rastreo con muchos enlaces.** Ese límite era el tope de todo el paso (2 h), no un ajuste; con ~100 sitios se superaba y se perdía lo recogido. Ahora el tope del paso es de **12 h** en `site_locations_crawl` y `llm_structure_addresses`.
 - Campo nuevo **«Tiempo máximo total (s)»** en ambos plugins (0 = sin límite propio). Al agotarse, el paso termina bien: no inicia más sitios (quedan marcados «tiempo total» en el resumen) o no envía más consultas al modelo (conserva el dato del rastreo), y avisa en el registro.
