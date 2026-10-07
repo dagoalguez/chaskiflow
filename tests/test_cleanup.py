@@ -95,6 +95,11 @@ class Cleanup(unittest.TestCase):
         st, d = self.admin.post("/api/workflows/trash/empty", {})
         self.assertEqual(d["purged"], 1)
 
+    def test_health_reports_credits(self):
+        st, d = self.srv.client().get("/api/health")
+        self.assertEqual(st, 200)
+        self.assertEqual((d["author"], d["contributions"], d["license"]), ("Diego Guevara B.", "Claude", "Apache-2.0"))
+
     def test_no_delete_running(self):
         import time
         wid = self.mk(self.ana, "lento", "slow", {"seconds": 6})

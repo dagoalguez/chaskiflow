@@ -168,13 +168,14 @@
         h("button", { class: "btn sm", type: "button", text: lang === "es" ? "English" : "Español", onclick: function () { setLang(lang === "es" ? "en" : "es"); } }),
         h("button", { class: "btn sm", type: "button", text: document.documentElement.getAttribute("data-theme") === "dark" ? t("light") : t("dark"),
           onclick: function () { setTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark"); showLogin(needsSetup, msg); } })));
-    clear(root).appendChild(h("div", { class: "login-wrap" }, form));
+    clear(root).appendChild(h("div", { class: "login-wrap" }, form, aboutLine("about-login")));
     u.focus();
   }
 
   function start() {
     applyTheme();
     api("GET", "/api/health").then(function (d) {
+      S.about = { version: d.version, author: d.author, contributions: d.contributions, license: d.license };
       if (d.needs_setup) return showLogin(true);
       return api("GET", "/api/me").then(function (m) { S.user = m.user; boot(); }, function () { showLogin(false); });
     }, function (e) { showLogin(false, e.message); });
@@ -275,6 +276,7 @@
                  link("🧩", t("plugins"), pluginsDialog),
                  link("👥", t("users"), usersDialog),
                  link("📜", t("audit"), auditDialog)] : null);
+    sbFoot.appendChild(aboutLine("about-side"));
     var side = h("div", { class: "sidebar" },
       h("div", { class: "sb-head" },
         canCreate ? h("button", { class: "btn primary", style: "flex:1", text: t("new_wf"), onclick: createWorkflow }) : null,
@@ -283,6 +285,30 @@
     els.main = h("div", { class: "main" });
     clear(root).appendChild(h("div", { class: "shell" }, top, h("div", { class: "body" }, side, els.main)));
     renderList(); renderMain(); applyPanels();
+  }
+
+  // créditos: línea discreta + diálogo «Acerca de»
+  function aboutText() {
+    var a = S.about || {};
+    return "ChaskiFlow" + (a.version ? " v" + a.version : "") + " · " + (a.author || "Diego Guevara B.") + " · " + (a.license || "Apache-2.0");
+  }
+  function aboutLine(cls) {
+    return h("button", { class: "about-line " + cls, text: aboutText(), title: lang === "es" ? "Acerca de ChaskiFlow" : "About ChaskiFlow", onclick: aboutDialog });
+  }
+  function aboutDialog() {
+    var a = S.about || {}, es = lang === "es";
+    dialog(es ? "Acerca de ChaskiFlow" : "About ChaskiFlow", h("div", null,
+      h("div", { style: "display:flex;align-items:center;gap:12px;margin-bottom:10px" },
+        h("img", { class: "login-logo", style: "margin:0;width:48px;height:48px", src: "/static/logo.svg", alt: "" }),
+        h("div", null, h("div", { style: "font-weight:600;font-size:16px", text: "ChaskiFlow" }), h("div", { class: "muted", text: "v" + (a.version || "") }))),
+      h("div", { text: es ? "Plataforma de workflows con plugins." : "Workflow platform with plugins." }),
+      h("table", { style: "margin-top:10px" }, h("tbody", null,
+        h("tr", null, h("td", { class: "muted", text: es ? "Autor" : "Author" }), h("td", { text: a.author || "Diego Guevara B." })),
+        h("tr", null, h("td", { class: "muted", text: es ? "Contribuciones" : "Contributions" }), h("td", { text: a.contributions || "Claude" })),
+        h("tr", null, h("td", { class: "muted", text: es ? "Licencia" : "License" }), h("td", { text: (a.license || "Apache-2.0") + (es ? " (código abierto)" : " (open source)") })))),
+      h("div", { class: "muted", style: "margin-top:10px;font-size:12px", text: es
+        ? "Copyright 2026 Diego Guevara B. Licenciado bajo la Licencia Apache, Versión 2.0. Los archivos LICENSE y NOTICE están en la carpeta del programa y deben conservarse al redistribuirlo."
+        : "Copyright 2026 Diego Guevara B. Licensed under the Apache License, Version 2.0. The LICENSE and NOTICE files in the program folder must be kept when redistributing." })));
   }
 
   function renderList() {

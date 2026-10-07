@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.11.3 — 2026-10-07
+- **Créditos dentro de la aplicación**: línea «ChaskiFlow vX · Diego Guevara B. · Apache-2.0» en el login y al pie de la barra lateral, y diálogo «Acerca de» (autor, contribuciones, licencia, aviso de copyright). `/api/health` informa autor, contribuciones y licencia.
+
 ## 0.11.2 — 2026-10-07
 - Licencia cambiada de MIT a **Apache-2.0** (igual que quipullm). Créditos: autor Diego Guevara B.; contribuciones: Claude (`NOTICE`, `AUTHORS`, `README`).
 

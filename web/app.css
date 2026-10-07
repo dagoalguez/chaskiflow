@@ -47,6 +47,10 @@ a { color: var(--accent); }
 .sb-link { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; background: transparent; border: 0;
   border-radius: 8px; padding: 5px 8px; color: var(--text); font-size: 13px; }
 .sb-link:hover { background: var(--panel2); }
+.about-line { background: transparent; border: 0; color: var(--muted); font-size: 11px; padding: 6px 8px 0; text-align: left; cursor: pointer; }
+.about-line:hover { color: var(--text); text-decoration: underline; }
+.about-login { display: block; margin: 10px auto 0; text-align: center; }
+.login-wrap { flex-direction: column; }
 .sb-link .ic { width: 18px; text-align: center; flex: none; }
 .wf-item { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 10px; cursor: pointer; }
 .wf-item:hover { background: var(--panel2); }
