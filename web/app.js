@@ -184,7 +184,7 @@
   function boot() {
     if (S.user.must_change_password) return forcePasswordChange();
     Promise.all([api("GET", "/api/plugins"), api("GET", "/api/workflows")]).then(function (r) {
-      setPlugins(r[0].plugins); S.workflows = r[1].workflows; S.current = null; S.runs = [];
+      setPlugins(r[0].plugins); S.workflows = r[1].workflows; S.current = null; S.runs = []; watchList();
       renderShell();
     }, function (e) { toast(e.message); });
   }
@@ -1026,7 +1026,7 @@
     }).then(function (d) {
       S.live = { id: d.run_id, after: 0, nodes: {}, order: [], status: "queued", done: false, logs: {}, wfname: w.name, started: Date.now(), reused: d.reused || [], partial: !!only };
       S.viewRun = null;
-      setRunning(true); renderRunPane(); poll();
+      setRunning(true); renderRunPane(); poll(); refreshList().catch(function () {});
     }, function (e) { toast(e.message); });
   }
   // ejecución parcial desde el grafo: modo "only" (solo este), "until" (hasta aquí), "from" (desde aquí)
@@ -1075,8 +1075,27 @@
   function loadRuns() {
     var w = S.current; if (!w) return;
     api("GET", "/api/workflows/" + w.id + "/runs?limit=40").then(function (d) {
-      if (S.current && S.current.id === w.id) { S.runs = d.runs; if (S.tab === "runs") { clear(els.editor); renderHistoryTab(); } else renderRunPane(); }
+      if (S.current && S.current.id === w.id) {
+        S.runs = d.runs;
+        // reconectar con una ejecución que sigue en curso (p. ej. al volver de otro workflow)
+        var act = d.runs.filter(function (r) { return r.status === "queued" || r.status === "running"; })[0];
+        if (act && !S.viewRun && (!S.live || S.live.done)) {
+          S.live = { id: act.id, after: 0, nodes: {}, order: [], status: act.status, done: false, logs: {}, wfname: w.name, started: Date.now(), reused: [], partial: false };
+          stopPolling(); setRunning(true); poll();
+        }
+        if (S.tab === "runs") { clear(els.editor); renderHistoryTab(); } else renderRunPane();
+      }
     }, function () {});
+  }
+  // la barra lateral se refresca sola mientras haya ejecuciones en curso
+  var listTimer = null;
+  function watchList() {
+    if (listTimer) return;
+    listTimer = setInterval(function () {
+      if (!S.user) return;
+      var any = S.workflows.some(function (w) { return w.last_run && (w.last_run.status === "running" || w.last_run.status === "queued"); });
+      if (any) refreshList().catch(function () {});
+    }, 4000);
   }
 
   function nodeMsg(n, onclick) {

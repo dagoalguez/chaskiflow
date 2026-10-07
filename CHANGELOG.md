@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.6 — 2026-10-07
+- **Al volver a un workflow que está ejecutándose, la pantalla se reconecta sola** al avance en vivo (grafo con el nodo en curso, registros, botón Detener). Antes había que abrir la ejecución desde el historial.
+- La lista lateral se refresca cada pocos segundos mientras haya ejecuciones en curso (el punto pasa de azul a verde/rojo al terminar sin tocar nada) y marca el workflow apenas se lanza.
+- Prueba nueva `tests/ui_reconnect_smoke.py`.
+
 ## 0.11.5 — 2026-10-07
 - El logo aparece al inicio del `README` (centrado, como en quipullm); copia en `docs/img/logo.svg`.
 
