@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1 — 2026-10-07
+- **Corrección (Windows): `[WinError 5] Acceso denegado` al exportar** cuando el CSV/XLSX de hoy ya existe y está abierto
+  (por ejemplo en Excel) o lo bloquea un antivirus. `export_csv` y `export_xlsx` reintentan unos segundos y, si sigue
+  bloqueado, guardan con otro nombre (`noticias_2026-10-07_1.csv`) y lo avisan en el registro; el correo adjunta el archivo
+  realmente escrito. Si ni así se puede, el error indica «Cierre el archivo si lo tiene abierto (¿Excel?)».
+- 4 pruebas nuevas (221 en total).
+
 ## 0.7.0 — 2026-10-07
 - **Plugins editables desde la interfaz** (Plugins → Editar / Renombrar / Eliminar; solo administrador):
   - *Editar*: archivos de texto del plugin (código, `plugin.json`, ayudas) con validación previa en una copia temporal

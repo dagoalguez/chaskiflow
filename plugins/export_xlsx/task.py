@@ -31,6 +31,37 @@ def _unique(path):
         i += 1
 
 
+def _safe_replace(tmp, path, ctx):
+    """Mueve tmp sobre path. En Windows falla (WinError 5/32) si el destino está abierto, p. ej. en Excel,
+    o lo bloquea un antivirus un instante: se reintenta y, si sigue bloqueado, se guarda con otro nombre."""
+    import time
+    last = None
+    for _ in range(6):
+        try:
+            tmp.replace(path)
+            return path
+        except PermissionError as e:
+            last = e
+            time.sleep(0.4)
+    i = 1
+    while True:
+        alt = path.with_name("%s_%d%s" % (path.stem, i, path.suffix))
+        if not alt.exists():
+            break
+        i += 1
+    try:
+        tmp.replace(alt)
+    except PermissionError:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise RuntimeError("No se pudo escribir '%s': %s. Cierre el archivo si lo tiene abierto (¿Excel?) "
+                           "o revise los permisos de la carpeta." % (path, last))
+    ctx.log("AVISO: '%s' está abierto o bloqueado (¿Excel?); se guardó como '%s'." % (path.name, alt.name))
+    return alt
+
+
 def run(config, ctx):
     data = config.get("data")
     if not isinstance(data, list):
@@ -62,7 +93,7 @@ def run(config, ctx):
     tmp = path.with_name(path.name + ".tmp")
     write_xlsx(str(tmp), header or ["(vacío)"], rows, config.get("sheet_name") or "Datos",
                int(config.get("max_cell_chars") or 32767))
-    tmp.replace(path)
+    path = _safe_replace(tmp, path, ctx)
     ctx.log("XLSX escrito: %s (%d filas)" % (path, len(rows)))
     return {"file_path": str(path), "file_paths": [str(path)], "filename": path.name,
             "rows": len(rows), "columns": columns}
