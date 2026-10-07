@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.13.4 — 2026-10-07
+- `pdf_keyword_scan`: la IA se decide **por archivo**. Si alguna página del PDF trae texto, se busca solo en el texto (ninguna página usa IA). Solo un PDF con cero texto (todo escaneado) manda sus páginas a la IA, una por una.
+
 ## 0.13.3 — 2026-10-07
 - `pdf_keyword_scan`: si el servidor de IA falla ya **no se aborta** el escaneo; los PDF con texto se buscan directo y solo los escaneados quedan en REVISAR_MANUAL (y no se recuerdan, para reintentarlos).
 

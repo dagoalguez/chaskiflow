@@ -250,13 +250,19 @@ def scan_pdf(item, terms, terms_txt, vis, opt, ctx, deadline):
     t0 = time.time()
     ia_used = 0
     ia_fail = 0
+    # Decisión por ARCHIVO: si alguna página trae texto, el PDF es de texto y NO se usa IA en ninguna página.
+    # Solo un PDF con cero texto (todo escaneado) pasa por la IA, página por página.
+    texts = [pdftext.page_text(p) for p in pages]
+    min_chars = opt["min_chars"]
+    pdf_con_texto = any(len(re.sub(r"\s+", "", t)) >= min_chars for t in texts)
+    res["tipo"] = "texto" if pdf_con_texto else "escaneado"
     for i in range(len(pages)):
         if time.time() - t0 > opt["max_pdf_seconds"]:
             res["notas"].append("cortado a las %d páginas por tiempo" % i)
             res["no_leidas"] += len(pages) - i
             break
         page = pages[i]
-        text = pdftext.page_text(page)
+        text = texts[i]
         if len(re.sub(r"\s+", "", text)) >= opt["min_chars"]:
             res["con_texto"] += 1
             for term, (n, frag) in find_terms(text, terms).items():
@@ -274,6 +280,8 @@ def scan_pdf(item, terms, terms_txt, vis, opt, ctx, deadline):
             res["vacias"] = res.get("vacias", 0) + 1
             continue
         res["sin_texto"] += 1
+        if pdf_con_texto:                            # PDF de texto: las páginas sin texto (portada, firma) no se mandan a IA
+            continue
         if vis is None or opt.get("ia_caida"):
             res["no_leidas"] += 1
             continue
@@ -407,8 +415,7 @@ def run(config, ctx):
             metodo, ident = "error", ""
             stats["errores"] += 1
         else:
-            metodo = "texto" if not res["sin_texto"] else ("ia" if res["con_texto"] == 0 and res["leidas_ia"] else
-                                                          ("mixto" if res["leidas_ia"] else ("sin texto" if res["con_texto"] == 0 else "texto")))
+            metodo = "texto" if res.get("tipo") == "texto" else ("ia" if res["leidas_ia"] else "sin texto")
             ident = "sí" if hits else "no"
         no_leido = (not res["error"]) and res["no_leidas"] > 0 and not hits
         copiado = ""

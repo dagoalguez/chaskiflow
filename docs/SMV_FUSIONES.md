@@ -15,7 +15,7 @@ Archivo: `examples/smv_fusiones_escisiones.json` (Importar → elegir ese archiv
 
 ## PDF escaneados (sin texto)
 
-Solo las **páginas sin texto** se leen con un modelo local con visión (por ejemplo **LFM2.5-VL 1.6B en quipullm**). Se extrae la
+La decisión es **por archivo**: si alguna página del PDF trae texto, se busca solo en el texto y no se usa IA. Solo un PDF **sin ningún texto** (todo escaneado) manda sus páginas, una por una, a un modelo local con visión (por ejemplo **LFM2.5-VL 1.6B en quipullm**). Se extrae la
 imagen de la página (JPEG, o imagen sin comprimir/Flate) y se le pregunta qué palabras de la lista aparecen escritas.
 
 - Cada página escaneada puede tardar de 15 a 30 s. Use «Máx. páginas por PDF para la IA» y «Tiempo máximo total».

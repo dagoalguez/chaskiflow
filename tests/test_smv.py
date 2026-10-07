@@ -187,7 +187,7 @@ class Scan(Base):
             llm.base = llm.base[:-len("/v1")]                                    # http://host:puerto (como lo escribió el usuario)
             res = self.scan(self.folder, llm)
             calls = llm.vision_calls
-        self.assertEqual(calls, 3)
+        self.assertEqual(calls, 2)
         self.assertEqual(self.by(res)[("ALFA", "2024")]["deteccion"], "IA")
 
     def test_scanned_pages_are_read_by_the_vision_model_only_when_there_is_no_text(self):
@@ -201,10 +201,10 @@ class Scan(Base):
         self.assertEqual(b[("ALFA", "2024")]["metodo"], "ia")
         self.assertEqual(b[("BETA", "2022")]["identificado"], "sí")             # JPEG
         self.assertIn("reorganización societaria", b[("BETA", "2022")]["palabras"])
-        self.assertEqual(b[("ALFA", "2025")]["identificado"], "no")             # mixto: texto sin hallazgo + página escaneada sin hallazgo
-        self.assertEqual(b[("ALFA", "2025")]["metodo"], "mixto")
-        self.assertEqual(b[("ALFA", "2025")]["paginas_leidas_ia"], 1)
-        self.assertEqual(calls, 3)                                              # solo las 3 páginas escaneadas legibles; ninguna de las de texto
+        self.assertEqual(b[("ALFA", "2025")]["identificado"], "no")             # PDF con texto (y una página escaneada): se busca solo en el texto
+        self.assertEqual(b[("ALFA", "2025")]["metodo"], "texto")                # tiene texto en alguna página: el PDF NO usa IA
+        self.assertEqual(b[("ALFA", "2025")]["paginas_leidas_ia"], 0)
+        self.assertEqual(calls, 2)                                              # solo PDF sin ningún texto (ALFA 2024, BETA 2022)
         self.assertEqual(mimes, ["image/jpeg", "image/png"])
 
     def test_unreadable_pdfs_go_to_manual_review_and_broken_ones_are_reported(self):

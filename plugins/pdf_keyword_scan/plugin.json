@@ -5,7 +5,7 @@
   "author": "ChaskiFlow",
   "icon": "🔎",
   "category": "Archivos",
-  "description": "Revisa PDF buscando palabras (por defecto: fusión, escisión, reorganización societaria; no distingue mayúsculas ni tildes y acepta plurales). Lee el texto del PDF; solo las páginas sin texto (escaneadas) se leen con un modelo local con visión (p. ej. LFM2.5-VL en quipullm). Copia los PDF con hallazgos a Carpeta/IDENTIFICADOS/Empresa/Año y los que no se pudieron leer a REVISAR_MANUAL. Recuerda lo ya revisado para continuar sin repetir. Incluye pypdf (BSD) para leer PDF sin instalar nada.",
+  "description": "Revisa PDF buscando palabras (por defecto: fusión, escisión, reorganización societaria; no distingue mayúsculas ni tildes y acepta plurales). Lee el texto del PDF; la IA se usa solo en un PDF que NO trae nada de texto (todo escaneado): sus páginas se leen con un modelo local con visión (p. ej. LFM2.5-VL en quipullm). Copia los PDF con hallazgos a Carpeta/IDENTIFICADOS/Empresa/Año y los que no se pudieron leer a REVISAR_MANUAL. Recuerda lo ya revisado para continuar sin repetir. Incluye pypdf (BSD) para leer PDF sin instalar nada.",
   "kind": "python",
   "entry": "task.py",
   "timeout": 43200,
