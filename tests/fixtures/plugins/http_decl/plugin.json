@@ -1,0 +1,37 @@
+{
+  "id": "http_decl",
+  "name": "http_decl",
+  "version": "1.0.0",
+  "fields": [
+    {
+      "key": "base",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "name",
+      "type": "string",
+      "default": "mundo"
+    }
+  ],
+  "outputs": [],
+  "secrets": [
+    "tok"
+  ],
+  "kind": "http",
+  "http": {
+    "method": "POST",
+    "url": "{{config.base}}/echo",
+    "headers": {
+      "Authorization": "Bearer {{secret.tok}}"
+    },
+    "json": {
+      "hello": "{{config.name}}"
+    },
+    "response_map": {
+      "echoed": "json.received.hello",
+      "auth": "json.auth",
+      "nada": "json.no.existe"
+    }
+  }
+}

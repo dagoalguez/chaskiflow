@@ -1,0 +1,24 @@
+# Seguridad
+
+## Modelo de amenazas (resumen)
+ChaskiFlow está pensado para una **red local de confianza**. Protege contra errores y abusos
+entre usuarios autenticados, no contra un atacante con acceso a la red ni contra un administrador malicioso.
+
+## Qué hace
+- Contraseñas con PBKDF2-HMAC-SHA256 (310 000 iteraciones); tokens de sesión guardados con hash.
+- Bloqueo temporal tras 5 fallos por usuario+IP; el cambio de contraseña cierra las demás sesiones.
+- Cookie `HttpOnly; SameSite=Strict`; peticiones que modifican exigen `Origin` igual al `Host`.
+- CSP estricta (`script-src 'self'; style-src 'self'`), `X-Frame-Options: DENY`, `nosniff`.
+  La interfaz nunca usa `innerHTML`; todo el texto entra con `textContent`.
+- Servidor de archivos estáticos con protección contra `..`; solo sirve `web/` y tipos conocidos.
+- Plugins: solo el administrador los aprueba; el hash SHA-256 cambia si se edita cualquier archivo.
+- Cada tarea corre en un subproceso con tiempo límite; los secretos se enmascaran en los registros.
+
+## Qué NO hace
+- **No cifra el tráfico (HTTP)**. Use una red de confianza o un proxy inverso con HTTPS.
+- **Los secretos están en texto plano** en `data/app.db`.
+- **Un plugin de Python es código arbitrario** con los permisos de quien lanza el servidor.
+- No hay límite de velocidad global ni protección contra denegación de servicio.
+
+## Reportar una vulnerabilidad
+Abra un aviso privado de seguridad en el repositorio (o escriba al mantenedor) en lugar de un issue público.

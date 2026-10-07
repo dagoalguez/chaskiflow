@@ -1,0 +1,100 @@
+{
+  "id": "outlook_send",
+  "name": "Outlook: enviar correo",
+  "version": "1.0.0",
+  "author": "ChaskiFlow",
+  "icon": "✉️",
+  "category": "Correo",
+  "description": "Envía (o deja abierto / en borradores) un correo con el Outlook instalado en el equipo que corre el servidor, usando PowerShell y COM. Solo Windows. Con 'Solo probar' no toca Outlook.",
+  "kind": "python",
+  "entry": "task.py",
+  "timeout": 180,
+  "fields": [
+    {
+      "key": "to",
+      "label": "Para",
+      "type": "string",
+      "required": true,
+      "help": "Correos separados por ;"
+    },
+    {
+      "key": "cc",
+      "label": "CC",
+      "type": "string"
+    },
+    {
+      "key": "bcc",
+      "label": "CCO",
+      "type": "string",
+      "advanced": true
+    },
+    {
+      "key": "subject",
+      "label": "Asunto",
+      "type": "string",
+      "required": true,
+      "default": "Noticias del día %Y-%m-%d",
+      "help": "Admite fecha estilo strftime (%Y-%m-%d)"
+    },
+    {
+      "key": "body",
+      "label": "Mensaje",
+      "type": "text",
+      "required": true,
+      "help": "Ej: {{Consolidar.result.resumen_md}}"
+    },
+    {
+      "key": "body_is_html",
+      "label": "El mensaje ya es HTML",
+      "type": "boolean",
+      "default": false,
+      "advanced": true
+    },
+    {
+      "key": "attachments",
+      "label": "Adjuntos",
+      "type": "any",
+      "help": "Ruta, lista de rutas o {{Csv.result.file_paths}}"
+    },
+    {
+      "key": "mode",
+      "label": "Acción",
+      "type": "select",
+      "default": "send",
+      "options": [
+        "send",
+        "display",
+        "draft"
+      ],
+      "help": "send = enviar; display = abrir el correo sin enviar; draft = guardar en Borradores"
+    },
+    {
+      "key": "dry_run",
+      "label": "Solo probar (no usar Outlook)",
+      "type": "boolean",
+      "default": false
+    }
+  ],
+  "outputs": [
+    {
+      "key": "sent",
+      "type": "boolean",
+      "description": "true si se envió"
+    },
+    {
+      "key": "mode",
+      "type": "string",
+      "description": "Acción realizada"
+    },
+    {
+      "key": "attachments",
+      "type": "list",
+      "description": "Adjuntos incluidos"
+    },
+    {
+      "key": "subject",
+      "type": "string",
+      "description": "Asunto final"
+    }
+  ]
+}

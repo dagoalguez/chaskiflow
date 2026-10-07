@@ -1,0 +1,15 @@
+{
+  "id": "slow_timeout",
+  "name": "slow_timeout",
+  "version": "1.0.0",
+  "fields": [
+    {
+      "key": "seconds",
+      "type": "number",
+      "default": 30
+    }
+  ],
+  "outputs": [],
+  "timeout": 1,
+  "kind": "python"
+}

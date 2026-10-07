@@ -1,0 +1,21 @@
+{
+  "id": "hello_world",
+  "name": "Hola mundo",
+  "version": "1.0.0",
+  "author": "ChaskiFlow",
+  "icon": "👋",
+  "category": "Ejemplos",
+  "description": "Plugin de ejemplo: genera N filas de prueba. Sirve para aprender el formato y probar exportaciones.",
+  "kind": "python",
+  "entry": "task.py",
+  "timeout": 30,
+  "fields": [
+    {"key": "nombre", "label": "Nombre", "type": "string", "default": "mundo", "help": "A quién saludar"},
+    {"key": "filas", "label": "Cantidad de filas", "type": "number", "default": 3, "min": 1, "max": 100000}
+  ],
+  "outputs": [
+    {"key": "mensaje", "type": "string", "description": "Saludo"},
+    {"key": "rows", "type": "list", "description": "Filas de ejemplo (n, mensaje)"},
+    {"key": "total", "type": "number", "description": "Cantidad de filas"}
+  ]
+}

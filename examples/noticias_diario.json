@@ -1,0 +1,187 @@
+{
+  "name": "Noticias diario",
+  "description": "Reemplaza el flujo manual de Noticias.ipynb: lee 6 medios, consolida recurrencia, exporta CSV/XLSX y prepara el correo en Outlook (modo 'display': se abre sin enviar; cambie a 'send' cuando lo valide).",
+  "variables": {
+    "carpeta": "./salida",
+    "destinatarios": "equipo@ejemplo.org"
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "label": "RPP",
+      "type": "news_feed_scrape",
+      "config": {
+        "medio": "RPP",
+        "feed_urls": "https://rpp.pe/sitemap/news",
+        "feed_type": "auto",
+        "hours_back": 24,
+        "include_paths": "rpp.pe/politica/, rpp.pe/actualidad/, rpp.pe/peru/, rpp.pe/economia/, rpp.pe/lima/",
+        "relevance_keywords": "elecciones, inflación, inversión, reforma, presupuesto, huelga"
+      },
+      "on_error": "continue"
+    },
+    {
+      "id": "n2",
+      "label": "Gestion",
+      "type": "news_feed_scrape",
+      "config": {
+        "medio": "Gestión",
+        "feed_urls": "https://gestion.pe/sitemap/news/economia/?outputType=xml, https://gestion.pe/sitemap/news/peru/?outputType=xml",
+        "feed_type": "auto",
+        "hours_back": 24,
+        "relevance_keywords": "elecciones, inflación, inversión, reforma, presupuesto, huelga"
+      },
+      "on_error": "continue"
+    },
+    {
+      "id": "n3",
+      "label": "Infobae",
+      "type": "news_feed_scrape",
+      "config": {
+        "medio": "Infobae",
+        "feed_urls": "https://www.infobae.com/arc/outboundfeeds/news-sitemap/category/peru/",
+        "feed_type": "auto",
+        "hours_back": 24,
+        "relevance_keywords": "elecciones, inflación, inversión, reforma, presupuesto, huelga"
+      },
+      "on_error": "continue"
+    },
+    {
+      "id": "n4",
+      "label": "ElComercio",
+      "type": "news_feed_scrape",
+      "config": {
+        "medio": "El Comercio",
+        "feed_urls": "https://elcomercio.pe/arc/outboundfeeds/google-news-feed/?outputType=xml",
+        "feed_type": "auto",
+        "hours_back": 24,
+        "relevance_keywords": "elecciones, inflación, inversión, reforma, presupuesto, huelga"
+      },
+      "on_error": "continue"
+    },
+    {
+      "id": "n5",
+      "label": "LaRepublica",
+      "type": "news_feed_scrape",
+      "config": {
+        "medio": "La República",
+        "feed_urls": "https://larepublica.pe/rss/economia.xml, https://larepublica.pe/rss/politica.xml, https://larepublica.pe/rss/sociedad.xml",
+        "feed_type": "rss",
+        "hours_back": 24,
+        "relevance_keywords": "elecciones, inflación, inversión, reforma, presupuesto, huelga"
+      },
+      "on_error": "continue"
+    },
+    {
+      "id": "n6",
+      "label": "Peru21",
+      "type": "news_feed_scrape",
+      "config": {
+        "medio": "Perú21",
+        "feed_urls": "https://peru21.pe/economia/, https://peru21.pe/investigacion/, https://peru21.pe/lima/, https://peru21.pe/peru/, https://peru21.pe/politica/",
+        "feed_type": "html_index",
+        "hours_back": 24,
+        "relevance_keywords": "elecciones, inflación, inversión, reforma, presupuesto, huelga"
+      },
+      "on_error": "continue"
+    },
+    {
+      "id": "n7",
+      "label": "Consolidar",
+      "type": "news_consolidate",
+      "config": {
+        "umbral": 0.4,
+        "medios_esperados": "RPP, Gestión, Infobae, El Comercio, La República, Perú21"
+      }
+    },
+    {
+      "id": "n8",
+      "label": "Csv",
+      "type": "export_csv",
+      "config": {
+        "data": "{{Consolidar.result.rows}}",
+        "output_dir": "{{vars.carpeta}}",
+        "filename": "noticias_%Y-%m-%d",
+        "columns": "medio,fecha,titulo,url,ind_relevante,palabras_detectadas,recurrencia,nro_medios,medios,id_recurrencia,contenido",
+        "rename": {
+          "medio": "Medio",
+          "fecha": "Fecha",
+          "titulo": "Título",
+          "url": "URL",
+          "ind_relevante": "Relevante",
+          "palabras_detectadas": "Palabras detectadas",
+          "recurrencia": "Recurrencia",
+          "nro_medios": "N° medios",
+          "medios": "Medios",
+          "id_recurrencia": "ID recurrencia",
+          "contenido": "Contenido"
+        }
+      }
+    },
+    {
+      "id": "n9",
+      "label": "Excel",
+      "type": "export_xlsx",
+      "config": {
+        "data": "{{Consolidar.result.rows}}",
+        "output_dir": "{{vars.carpeta}}",
+        "filename": "noticias_%Y-%m-%d",
+        "sheet_name": "Noticias"
+      }
+    },
+    {
+      "id": "n10",
+      "label": "Correo",
+      "type": "outlook_send",
+      "config": {
+        "to": "{{vars.destinatarios}}",
+        "subject": "Noticias relevantes %Y-%m-%d",
+        "body": "Buenos días,\n\nSe adjunta el consolidado de noticias del día.\n\n{{Consolidar.result.resumen_md}}\n\nGenerado automáticamente por ChaskiFlow.",
+        "attachments": "{{Excel.result.file_paths}}",
+        "mode": "display"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "n1",
+      "target": "n7"
+    },
+    {
+      "source": "n2",
+      "target": "n7"
+    },
+    {
+      "source": "n3",
+      "target": "n7"
+    },
+    {
+      "source": "n4",
+      "target": "n7"
+    },
+    {
+      "source": "n5",
+      "target": "n7"
+    },
+    {
+      "source": "n6",
+      "target": "n7"
+    },
+    {
+      "source": "n7",
+      "target": "n8"
+    },
+    {
+      "source": "n7",
+      "target": "n9"
+    },
+    {
+      "source": "n9",
+      "target": "n10"
+    },
+    {
+      "source": "n7",
+      "target": "n10"
+    }
+  ]
+}

@@ -1,0 +1,215 @@
+{
+  "id": "news_feed_scrape",
+  "name": "Noticias: leer medio",
+  "version": "1.0.0",
+  "author": "ChaskiFlow",
+  "icon": "📰",
+  "category": "Noticias",
+  "description": "Lee las noticias recientes de UN medio desde su sitemap de noticias, RSS, sitemap index o portada de sección; descarga cada nota, extrae el texto (extractor propio, sin librerías), descarta temas excluidos y marca las que contienen palabras relevantes. Use un nodo por medio.",
+  "kind": "python",
+  "entry": "task.py",
+  "timeout": 900,
+  "fields": [
+    {
+      "key": "medio",
+      "label": "Medio",
+      "type": "string",
+      "required": true,
+      "placeholder": "RPP"
+    },
+    {
+      "key": "feed_urls",
+      "label": "URLs del feed o portada",
+      "type": "text",
+      "required": true,
+      "help": "Una o varias, separadas por coma o salto de línea"
+    },
+    {
+      "key": "feed_type",
+      "label": "Tipo de feed",
+      "type": "select",
+      "default": "auto",
+      "options": [
+        "auto",
+        "news_sitemap",
+        "rss",
+        "sitemap_index",
+        "html_index"
+      ],
+      "help": "auto detecta el formato. html_index = portada de sección sin feed (Perú21)"
+    },
+    {
+      "key": "include_paths",
+      "label": "Secciones incluidas",
+      "type": "text",
+      "help": "Fragmentos de URL, separados por coma. Ej: /politica/, /economia/. Vacío = todas"
+    },
+    {
+      "key": "exclude_paths",
+      "label": "Secciones excluidas",
+      "type": "text",
+      "help": "Fragmentos de URL a descartar"
+    },
+    {
+      "key": "hours_back",
+      "label": "Horas hacia atrás",
+      "type": "number",
+      "default": 24,
+      "min": 0,
+      "help": "0 = sin límite de fecha"
+    },
+    {
+      "key": "max_articles",
+      "label": "Máx. notas a descargar",
+      "type": "number",
+      "default": 60,
+      "min": 1,
+      "max": 2000
+    },
+    {
+      "key": "exclude_keywords",
+      "label": "Palabras excluyentes",
+      "type": "text",
+      "default": "horoscopo, me caigo de risa, valentina valiente, el gran chef, la voz, yo soy, novelas, telenovela, recetas, cocina, astrologia, tabla de posiciones, cuanto esta el dolar, partidos de hoy, corte de agua hoy, temblor en, torneo clausura, tipo de cambio del dolar, resultados de la tinka, sorteo, en vivo minuto a minuto, alineaciones",
+      "help": "Si aparecen, la nota se descarta (sin tildes ni mayúsculas)"
+    },
+    {
+      "key": "exclude_scope",
+      "label": "Dónde buscar excluyentes",
+      "type": "select",
+      "default": "titulo",
+      "options": [
+        "titulo",
+        "titulo_contenido"
+      ]
+    },
+    {
+      "key": "relevance_keywords",
+      "label": "Palabras relevantes",
+      "type": "text",
+      "default": "",
+      "help": "Una lista separada por comas; marcan la nota con ind_relevante = 1. Vacío = ninguna"
+    },
+    {
+      "key": "only_relevant",
+      "label": "Quedarse solo con las relevantes",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "key": "min_chars",
+      "label": "Mín. caracteres del texto",
+      "type": "number",
+      "default": 250,
+      "min": 0,
+      "advanced": true
+    },
+    {
+      "key": "max_chars",
+      "label": "Máx. caracteres del texto",
+      "type": "number",
+      "default": 20000,
+      "min": 500,
+      "advanced": true
+    },
+    {
+      "key": "workers",
+      "label": "Descargas en paralelo",
+      "type": "number",
+      "default": 8,
+      "min": 1,
+      "max": 16,
+      "advanced": true
+    },
+    {
+      "key": "timeout",
+      "label": "Timeout por petición (s)",
+      "type": "number",
+      "default": 30,
+      "min": 3,
+      "max": 300,
+      "advanced": true
+    },
+    {
+      "key": "url_regex",
+      "label": "Regex de URL (opcional)",
+      "type": "string",
+      "advanced": true,
+      "help": "Solo conserva URLs que coincidan. En html_index reemplaza la heurística de links"
+    },
+    {
+      "key": "skip_seen",
+      "label": "Omitir notas ya procesadas",
+      "type": "boolean",
+      "default": false,
+      "advanced": true,
+      "help": "Recuerda las URLs entre ejecuciones (archivo en la carpeta de abajo)"
+    },
+    {
+      "key": "seen_dir",
+      "label": "Carpeta de URLs vistas",
+      "type": "string",
+      "advanced": true,
+      "placeholder": "C:\\\\vistas"
+    },
+    {
+      "key": "user_agent",
+      "label": "User-Agent",
+      "type": "string",
+      "advanced": true
+    },
+    {
+      "key": "verify_ssl",
+      "label": "Verificar certificado SSL",
+      "type": "boolean",
+      "default": true,
+      "advanced": true
+    },
+    {
+      "key": "ca_bundle",
+      "label": "Certificado CA (.pem)",
+      "type": "string",
+      "advanced": true,
+      "help": "Para proxys que re-firman SSL"
+    },
+    {
+      "key": "proxy",
+      "label": "Proxy",
+      "type": "string",
+      "advanced": true,
+      "placeholder": "http://proxy:8080 (vacío = el del sistema)"
+    }
+  ],
+  "outputs": [
+    {
+      "key": "rows",
+      "type": "list",
+      "description": "Notas: medio, titulo, fecha, fecha_iso, url, seccion, contenido, ind_relevante, palabras_detectadas, fecha_extraccion"
+    },
+    {
+      "key": "medio",
+      "type": "string",
+      "description": "Nombre del medio"
+    },
+    {
+      "key": "total_feed",
+      "type": "number",
+      "description": "Items que traía el feed"
+    },
+    {
+      "key": "total_articulos",
+      "type": "number",
+      "description": "Notas finales"
+    },
+    {
+      "key": "relevantes",
+      "type": "number",
+      "description": "Notas con palabras relevantes"
+    },
+    {
+      "key": "descartes",
+      "type": "object",
+      "description": "Por qué se descartó lo demás"
+    }
+  ]
+}

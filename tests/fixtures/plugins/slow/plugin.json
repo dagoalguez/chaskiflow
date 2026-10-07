@@ -1,0 +1,15 @@
+{
+  "id": "slow",
+  "name": "slow",
+  "version": "1.0.0",
+  "fields": [
+    {
+      "key": "seconds",
+      "type": "number",
+      "default": 1
+    }
+  ],
+  "outputs": [],
+  "timeout": 30,
+  "kind": "python"
+}

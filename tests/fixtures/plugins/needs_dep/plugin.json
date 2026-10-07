@@ -1,0 +1,11 @@
+{
+  "id": "needs_dep",
+  "name": "needs_dep",
+  "version": "1.0.0",
+  "fields": [],
+  "outputs": [],
+  "requires": [
+    "modulo_que_no_existe_xyz"
+  ],
+  "kind": "python"
+}

@@ -1,0 +1,50 @@
+{
+  "id": "http_request",
+  "name": "Petición HTTP",
+  "version": "1.0.0",
+  "author": "ChaskiFlow",
+  "icon": "🌐",
+  "category": "Red",
+  "description": "Llama a cualquier API o página por HTTP. Plugin declarativo: no tiene código Python, solo este manifiesto. Sirve como base para integrar APIs (WhatsApp, Teams, etc.) sin programar.",
+  "kind": "http",
+  "timeout": 120,
+  "fields": [
+    {"key": "method", "label": "Método", "type": "select", "default": "GET",
+     "options": ["GET", "POST", "PUT", "PATCH", "DELETE"]},
+    {"key": "url", "label": "URL", "type": "string", "required": true,
+     "placeholder": "https://api.ejemplo.com/datos"},
+    {"key": "headers", "label": "Cabeceras (JSON)", "type": "json", "default": {},
+     "help": "Ej: {\"Authorization\": \"Bearer ...\"}"},
+    {"key": "body", "label": "Cuerpo", "type": "any",
+     "help": "Texto, o un objeto/lista que se envía como JSON"},
+    {"key": "timeout", "label": "Timeout (s)", "type": "number", "default": 30, "min": 1, "max": 3600},
+    {"key": "fail_on_http_error", "label": "Fallar si el código HTTP no es 2xx", "type": "boolean", "default": true},
+    {"key": "verify_ssl", "label": "Verificar SSL", "type": "boolean", "default": true, "advanced": true},
+    {"key": "ca_bundle", "label": "Certificado CA (ruta .pem)", "type": "string", "advanced": true,
+     "help": "Para proxys institucionales que re-firman SSL"},
+    {"key": "proxy", "label": "Proxy", "type": "string", "advanced": true, "placeholder": "http://proxy:8080"},
+    {"key": "user_agent", "label": "User-Agent", "type": "string", "advanced": true},
+    {"key": "max_mb", "label": "Máx. MB de respuesta", "type": "number", "default": 20, "advanced": true}
+  ],
+  "outputs": [
+    {"key": "status", "type": "number", "description": "Código HTTP"},
+    {"key": "ok", "type": "boolean", "description": "true si fue 2xx"},
+    {"key": "text", "type": "string", "description": "Respuesta como texto"},
+    {"key": "json", "type": "any", "description": "Respuesta ya convertida si era JSON (si no, null)"},
+    {"key": "headers", "type": "object", "description": "Cabeceras de la respuesta (en minúsculas)"},
+    {"key": "elapsed_ms", "type": "number", "description": "Duración en milisegundos"}
+  ],
+  "http": {
+    "method": "{{config.method}}",
+    "url": "{{config.url}}",
+    "headers": "{{config.headers}}",
+    "body": "{{config.body}}",
+    "timeout": "{{config.timeout}}",
+    "fail_on_http_error": "{{config.fail_on_http_error}}",
+    "verify_ssl": "{{config.verify_ssl}}",
+    "ca_bundle": "{{config.ca_bundle}}",
+    "proxy": "{{config.proxy}}",
+    "user_agent": "{{config.user_agent}}",
+    "max_mb": "{{config.max_mb}}"
+  }
+}

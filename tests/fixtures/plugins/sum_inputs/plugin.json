@@ -1,0 +1,9 @@
+{
+  "id": "sum_inputs",
+  "name": "sum_inputs",
+  "version": "1.0.0",
+  "fields": [],
+  "outputs": [],
+  "inputs": true,
+  "kind": "python"
+}

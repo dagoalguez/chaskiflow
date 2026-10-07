@@ -1,0 +1,33 @@
+{
+  "id": "export_xlsx",
+  "name": "Exportar Excel (XLSX)",
+  "version": "1.0.0",
+  "author": "ChaskiFlow",
+  "icon": "📊",
+  "category": "Datos",
+  "description": "Guarda una lista de filas en un archivo .xlsx con encabezado en negrita, filtros y fila fija. Escrito con zipfile y XML: no necesita openpyxl ni pandas.",
+  "kind": "python",
+  "entry": "task.py",
+  "timeout": 300,
+  "fields": [
+    {"key": "data", "label": "Datos", "type": "any", "required": true,
+     "help": "Lista de filas. Ej: {{Consolidar.result.rows}}"},
+    {"key": "output_dir", "label": "Carpeta destino", "type": "string", "required": true},
+    {"key": "filename", "label": "Nombre de archivo", "type": "string", "default": "export_%Y-%m-%d",
+     "help": "Admite fecha estilo strftime: %Y-%m-%d_%H%M"},
+    {"key": "sheet_name", "label": "Nombre de hoja", "type": "string", "default": "Datos"},
+    {"key": "columns", "label": "Columnas (orden)", "type": "string",
+     "help": "Separadas por coma. Vacío = todas"},
+    {"key": "rename", "label": "Renombrar columnas (JSON)", "type": "json", "default": {}},
+    {"key": "overwrite", "label": "Sobrescribir si existe", "type": "boolean", "default": true},
+    {"key": "max_cell_chars", "label": "Máx. caracteres por celda", "type": "number", "default": 32000,
+     "advanced": true}
+  ],
+  "outputs": [
+    {"key": "file_path", "type": "string", "description": "Ruta completa del archivo"},
+    {"key": "file_paths", "type": "list", "description": "Lista con la ruta (para adjuntos)"},
+    {"key": "filename", "type": "string", "description": "Nombre del archivo"},
+    {"key": "rows", "type": "number", "description": "Filas escritas (sin contar el encabezado)"},
+    {"key": "columns", "type": "list", "description": "Columnas escritas"}
+  ]
+}

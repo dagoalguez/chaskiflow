@@ -1,0 +1,19 @@
+{
+  "name": "Hola reporte",
+  "description": "Genera filas de ejemplo y las exporta a CSV y XLSX. Cambie 'carpeta' con --var carpeta=...",
+  "variables": {"carpeta": "./salida"},
+  "nodes": [
+    {"id": "n1", "label": "Datos", "type": "hello_world",
+     "config": {"nombre": "equipo", "filas": 5}},
+    {"id": "n2", "label": "Csv", "type": "export_csv",
+     "config": {"data": "{{Datos.result.rows}}", "output_dir": "{{vars.carpeta}}",
+                "filename": "hola_%Y-%m-%d", "rename": {"n": "N°", "mensaje": "Mensaje"}}},
+    {"id": "n3", "label": "Excel", "type": "export_xlsx",
+     "config": {"data": "{{Datos.result.rows}}", "output_dir": "{{vars.carpeta}}",
+                "filename": "hola_%Y-%m-%d", "sheet_name": "Saludos"}}
+  ],
+  "edges": [
+    {"source": "n1", "target": "n2"},
+    {"source": "n1", "target": "n3"}
+  ]
+}

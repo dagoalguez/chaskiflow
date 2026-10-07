@@ -1,0 +1,11 @@
+{
+  "id": "leaky",
+  "name": "leaky",
+  "version": "1.0.0",
+  "fields": [],
+  "outputs": [],
+  "secrets": [
+    "api_token"
+  ],
+  "kind": "python"
+}

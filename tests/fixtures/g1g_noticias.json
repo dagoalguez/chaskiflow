@@ -1,0 +1,8 @@
+{"nodes":[
+{"id":"node_1","type":"custom","position":{"x":0,"y":0},"data":{"label":"RPP","task_type":"news_feed_scrape","config":{"medio":"RPP","feed_urls":"https://ejemplo.test/sitemap.xml","hours_back":24,"headless":false,"stealth":true,"session_id":"x","keep_session":true,"fetch_mode":"requests","seen_key":"k","on_error":"continue"}}},
+{"id":"node_2","type":"custom","position":{"x":0,"y":100},"data":{"label":"El Comercio","task_type":"news_feed_scrape","config":{"medio":"El Comercio","feed_urls":"https://ejemplo.test/b.xml","fetch_mode":"browser","link_selector":"a.x"}}},
+{"id":"node_3","type":"custom","position":{"x":300,"y":50},"data":{"label":"Consolidar","task_type":"news_consolidate","config":{"umbral":0.4}}},
+{"id":"node_4","type":"custom","position":{"x":600,"y":50},"data":{"label":"Exportar","task_type":"data_export","config":{"format":"both","data":"{{Consolidar.result.rows}}","output_dir":"./salida","filename":"n_%Y","sheet_name":"Noticias","wat":1}}},
+{"id":"node_5","type":"custom","position":{"x":900,"y":50},"data":{"label":"Correo","task_type":"outlook_send","config":{"to":"a@b.pe","subject":"S","body":"<b>{{El Comercio.result.count}}</b> {{Exportar.result.file_paths}}","body_format":"html","send_mode":"display","attachments":"{{Exportar.result.file_paths}}"}}},
+{"id":"node_6","type":"custom","position":{"x":900,"y":150},"data":{"label":"Raro","task_type":"inexistente","config":{}},"foreachParent":"node_9"}
+],"edges":[{"id":"e1","source":"node_1","target":"node_3"},{"id":"e2","source":"node_2","target":"node_3"},{"id":"e3","source":"node_3","target":"node_4"},{"id":"e4","source":"node_4","target":"node_5"},{"id":"e5","source":"node_5","target":"node_99"}]}

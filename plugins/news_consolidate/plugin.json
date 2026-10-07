@@ -1,0 +1,113 @@
+{
+  "id": "news_consolidate",
+  "name": "Noticias: consolidar",
+  "version": "1.0.0",
+  "author": "ChaskiFlow",
+  "icon": "🔗",
+  "category": "Noticias",
+  "description": "Une las noticias de todos los nodos 'Noticias: leer medio' anteriores, quita duplicados por URL y detecta RECURRENCIA (la misma noticia en varios medios) con TF-IDF + similitud coseno. Devuelve las filas listas para exportar y un resumen en texto para el correo.",
+  "kind": "python",
+  "entry": "task.py",
+  "timeout": 600,
+  "inputs": true,
+  "fields": [
+    {
+      "key": "umbral",
+      "label": "Umbral de similitud",
+      "type": "number",
+      "default": 0.4,
+      "min": 0.05,
+      "max": 1,
+      "help": "0.40 = parecidas; súbalo si agrupa notas que no son lo mismo, bájelo si se le escapan"
+    },
+    {
+      "key": "cross_medio",
+      "label": "Recurrencia solo entre medios distintos",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "key": "only_relevant",
+      "label": "Quedarse solo con las relevantes",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "key": "orden",
+      "label": "Orden",
+      "type": "select",
+      "default": "relevancia",
+      "options": [
+        "relevancia",
+        "fecha",
+        "medio"
+      ]
+    },
+    {
+      "key": "max_rows",
+      "label": "Máx. filas (0 = todas)",
+      "type": "number",
+      "default": 0,
+      "min": 0
+    },
+    {
+      "key": "medios_esperados",
+      "label": "Medios esperados (opcional)",
+      "type": "text",
+      "help": "Separados por coma. Los que no aporten notas se avisan en el resumen"
+    },
+    {
+      "key": "chars_similitud",
+      "label": "Caracteres a comparar",
+      "type": "number",
+      "default": 1200,
+      "min": 200,
+      "max": 20000,
+      "advanced": true
+    },
+    {
+      "key": "sources",
+      "label": "Fuente explícita (opcional)",
+      "type": "any",
+      "advanced": true,
+      "help": "Lista de filas. Si se deja vacío usa los nodos anteriores"
+    }
+  ],
+  "outputs": [
+    {
+      "key": "rows",
+      "type": "list",
+      "description": "Noticias con recurrencia, id_recurrencia, nro_medios, medios"
+    },
+    {
+      "key": "resumen_md",
+      "type": "string",
+      "description": "Resumen en texto plano (para el cuerpo del correo)"
+    },
+    {
+      "key": "total",
+      "type": "number",
+      "description": "Noticias finales"
+    },
+    {
+      "key": "relevantes",
+      "type": "number",
+      "description": "Con palabras relevantes"
+    },
+    {
+      "key": "recurrentes",
+      "type": "number",
+      "description": "Notas en más de un medio"
+    },
+    {
+      "key": "grupos_recurrencia",
+      "type": "number",
+      "description": "Grupos de recurrencia"
+    },
+    {
+      "key": "medios_sin_datos",
+      "type": "list",
+      "description": "Medios esperados sin notas"
+    }
+  ]
+}

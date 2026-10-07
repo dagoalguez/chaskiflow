@@ -1,0 +1,12 @@
+# Datos y secretos locales: nunca publicar
+data/
+runs/
+config.json
+PRIVADO/
+*.db
+*.db-wal
+*.db-shm
+*.bak_*
+__pycache__/
+*.pyc
+salida/

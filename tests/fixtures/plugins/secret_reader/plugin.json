@@ -1,0 +1,11 @@
+{
+  "id": "secret_reader",
+  "name": "secret_reader",
+  "version": "1.0.0",
+  "fields": [],
+  "outputs": [],
+  "secrets": [
+    "api_token"
+  ],
+  "kind": "python"
+}

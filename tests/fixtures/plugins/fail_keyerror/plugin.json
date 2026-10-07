@@ -1,0 +1,8 @@
+{
+  "id": "fail_keyerror",
+  "name": "fail_keyerror",
+  "version": "1.0.0",
+  "fields": [],
+  "outputs": [],
+  "kind": "python"
+}

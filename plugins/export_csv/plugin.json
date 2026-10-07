@@ -1,0 +1,39 @@
+{
+  "id": "export_csv",
+  "name": "Exportar CSV",
+  "version": "1.0.0",
+  "author": "ChaskiFlow",
+  "icon": "📄",
+  "category": "Datos",
+  "description": "Guarda una lista de filas (diccionarios) en un archivo CSV. Abre bien en Excel (UTF-8 con BOM).",
+  "kind": "python",
+  "entry": "task.py",
+  "timeout": 300,
+  "fields": [
+    {"key": "data", "label": "Datos", "type": "any", "required": true,
+     "help": "Lista de filas. Ej: {{Consolidar.result.rows}}"},
+    {"key": "output_dir", "label": "Carpeta destino", "type": "string", "required": true},
+    {"key": "filename", "label": "Nombre de archivo", "type": "string", "default": "export_%Y-%m-%d",
+     "help": "Admite fecha estilo strftime: %Y-%m-%d_%H%M"},
+    {"key": "columns", "label": "Columnas (orden)", "type": "string",
+     "help": "Separadas por coma. Vacío = todas, en el orden de aparición"},
+    {"key": "rename", "label": "Renombrar columnas (JSON)", "type": "json", "default": {},
+     "help": "Ej: {\"titulo\": \"Título\"}"},
+    {"key": "delimiter", "label": "Separador", "type": "string", "default": ";"},
+    {"key": "encoding", "label": "Codificación", "type": "string", "default": "utf-8-sig"},
+    {"key": "overwrite", "label": "Sobrescribir si existe", "type": "boolean", "default": true,
+     "help": "Si no, agrega _1, _2... al nombre"},
+    {"key": "max_cell_chars", "label": "Máx. caracteres por celda", "type": "number", "default": 32000,
+     "advanced": true},
+    {"key": "escape_formulas", "label": "Neutralizar fórmulas (=, +, -, @)", "type": "boolean",
+     "default": true, "advanced": true,
+     "help": "Evita que Excel ejecute texto que parezca una fórmula"}
+  ],
+  "outputs": [
+    {"key": "file_path", "type": "string", "description": "Ruta completa del archivo"},
+    {"key": "file_paths", "type": "list", "description": "Lista con la ruta (para adjuntos)"},
+    {"key": "filename", "type": "string", "description": "Nombre del archivo"},
+    {"key": "rows", "type": "number", "description": "Filas escritas"},
+    {"key": "columns", "type": "list", "description": "Columnas escritas"}
+  ]
+}

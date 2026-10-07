@@ -1,0 +1,13 @@
+{
+  "id": "ok_echo",
+  "name": "ok_echo",
+  "version": "1.0.0",
+  "fields": [
+    {
+      "key": "value",
+      "type": "any"
+    }
+  ],
+  "outputs": [],
+  "kind": "python"
+}

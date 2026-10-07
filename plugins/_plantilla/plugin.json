@@ -1,0 +1,21 @@
+{
+  "id": "mi_plugin",
+  "name": "Mi plugin",
+  "version": "0.1.0",
+  "author": "Su nombre",
+  "icon": "🧩",
+  "category": "General",
+  "description": "Qué hace esta tarea, en una frase.",
+  "kind": "python",
+  "entry": "task.py",
+  "timeout": 60,
+  "inputs": false,
+  "fields": [
+    {"key": "texto", "label": "Texto", "type": "string", "default": "hola", "help": "Ayuda corta para quien arma el flujo"},
+    {"key": "veces", "label": "Veces", "type": "number", "default": 1, "min": 1, "max": 100}
+  ],
+  "outputs": [
+    {"key": "rows", "type": "list", "description": "Filas producidas"},
+    {"key": "total", "type": "number", "description": "Cantidad de filas"}
+  ]
+}
