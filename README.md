@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/img/logo.svg" alt="ChaskiFlow logo" width="72"></p>
+
 # ChaskiFlow
 
 Por **Diego Guevara B.** · Contribuciones: Claude · Licencia Apache-2.0

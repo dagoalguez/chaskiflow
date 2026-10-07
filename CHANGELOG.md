@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.11.5 — 2026-10-07
+- El logo aparece al inicio del `README` (centrado, como en quipullm); copia en `docs/img/logo.svg`.
+
 ## 0.11.4 — 2026-10-07
 - **Logo transparente**, en el mismo estilo de línea que el de quipullm (trazo azul, sin fondo): el flujo de nodos con la flecha de llegada. En el login y en «Acerca de» es SVG en línea y toma el color del tema; en la cabecera y la pestaña usa `web/logo.svg`.
 
