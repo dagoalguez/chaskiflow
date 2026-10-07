@@ -55,6 +55,9 @@ def run(config, ctx):
     ctx.log("Portal abierto: %d empresas en la lista" % len(companies))
     lines = [x.strip() for x in re.split(r"[\n;]+", config.get("empresas") or "") if x.strip()]
     chosen, missing = _pick_companies(lines, companies, ctx.log)
+    ctx.log("Empresas elegidas (%d): %s%s" % (len(chosen), "; ".join(c[1] for c in chosen[:12]), " …" if len(chosen) > 12 else ""))
+    if lines:
+        ctx.log("Nota: solo se descargan las empresas escritas en «Empresas» (cada una coincide por nombre parcial). Para TODAS, deje «Empresas» vacío.")
     if lines and not chosen:
         raise RuntimeError("Ninguna de las empresas indicadas se encontró en el portal: " + "; ".join(missing))
     for m in missing:

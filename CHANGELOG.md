@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.2 — 2026-10-07
+- `smv_financial_download`: el registro lista las empresas elegidas y recuerda que solo se descargan las escritas en «Empresas» (vacío = todas).
+- `pdf_keyword_scan`: una línea por PDF con páginas con texto / sin texto / leídas con IA, para ver qué se procesa por IA.
+
 ## 0.13.1 — 2026-10-07
 - Corrección: si la URL del servidor de IA se escribe sin `/v1` (p. ej. `http://localhost:1234`), `pdf_keyword_scan` y `llm_structure_addresses` la completan solos; antes daban «HTTP 404 Route not found: /chat/completions».
 

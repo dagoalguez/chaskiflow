@@ -379,7 +379,7 @@ def run(config, ctx):
             continue
         res = None
         if key in cache and cache[key].get("sig") == sig:
-            res = cache[key]["res"]
+            res = dict(cache[key]["res"], _reutilizado=True)
             stats["reutilizados"] += 1
         else:
             if deadline and time.time() > deadline:
@@ -392,6 +392,10 @@ def run(config, ctx):
                 cache[key] = {"sig": sig, "res": res}
                 _atomic_json(cache_path, cache)
         hits = res["hits"]
+        if not res["error"] and not res.get("_reutilizado"):
+            ctx.log("%s %s: %d pág. · %d con texto · %d sin texto (%d leídas con IA)%s → %s" % (
+                it["empresa"], it["anio"], res["paginas"], res["con_texto"], res["sin_texto"], res["leidas_ia"],
+                " · %d sin leer" % res["no_leidas"] if res["no_leidas"] else "", ", ".join(hits) if hits else "sin hallazgo"))
         palabras = "; ".join("%s (%d)" % (t, h["n"]) for t, h in hits.items())
         pgs = sorted({p for h in hits.values() for p in h["paginas"]})
         fuentes = sorted({h["fuente"] for h in hits.values()})
