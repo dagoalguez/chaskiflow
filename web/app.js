@@ -155,7 +155,7 @@
         function (e) { err.textContent = e.message; });
     }
     var form = h("form", { class: "login", onsubmit: function (ev) { ev.preventDefault(); submit(); } },
-      h("img", { class: "login-logo", src: "/static/logo.svg", alt: "" }),
+      logoSvg("login-logo"),
       h("h1", { text: "ChaskiFlow" }),
       h("div", { class: "muted", text: needsSetup ? t("setup_hint") : "" }),
       h("div", { class: "field" }, h("div", { class: "fl", text: t("user") }), u),
@@ -287,6 +287,18 @@
     renderList(); renderMain(); applyPanels();
   }
 
+  // logo en línea (sin fondo); el color sigue al tema mediante la clase .logo-svg
+  function logoSvg(cls) {
+    var NS = "http://www.w3.org/2000/svg";
+    function e(tag, attrs) { var n = document.createElementNS(NS, tag); Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); }); return n; }
+    var s = e("svg", { viewBox: "0 0 64 64", "class": "logo-svg " + (cls || ""), role: "img", "aria-label": "ChaskiFlow" });
+    s.appendChild(e("path", { d: "M9 46C21 46 21 20 33 20S45 44 55 17" }));
+    s.appendChild(e("circle", { cx: 9, cy: 46, r: 3.5, "class": "dot" }));
+    s.appendChild(e("circle", { cx: 33, cy: 20, r: 3.5, "class": "dot" }));
+    s.appendChild(e("circle", { cx: 55, cy: 17, r: 4.5, "class": "dot" }));
+    s.appendChild(e("path", { d: "M49 14l6-1-2 6" }));
+    return s;
+  }
   // créditos: línea discreta + diálogo «Acerca de»
   function aboutText() {
     var a = S.about || {};
@@ -299,7 +311,7 @@
     var a = S.about || {}, es = lang === "es";
     dialog(es ? "Acerca de ChaskiFlow" : "About ChaskiFlow", h("div", null,
       h("div", { style: "display:flex;align-items:center;gap:12px;margin-bottom:10px" },
-        h("img", { class: "login-logo", style: "margin:0;width:48px;height:48px", src: "/static/logo.svg", alt: "" }),
+        logoSvg("about-logo"),
         h("div", null, h("div", { style: "font-weight:600;font-size:16px", text: "ChaskiFlow" }), h("div", { class: "muted", text: "v" + (a.version || "") }))),
       h("div", { text: es ? "Plataforma de workflows con plugins." : "Workflow platform with plugins." }),
       h("table", { style: "margin-top:10px" }, h("tbody", null,

@@ -1,13 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ChaskiFlow">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#1b7fd1"/>
-      <stop offset="1" stop-color="#0c3f73"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="14" fill="url(#g)"/>
-  <path d="M14 44 C23 44 23 25 32 25 S41 42 50 20" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="14" cy="44" r="5" fill="#ffffff"/>
-  <circle cx="32" cy="25" r="5" fill="#ffffff"/>
-  <circle cx="50" cy="20" r="6.5" fill="#f5b73b"/>
-</svg>
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='#5aa7f0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' role='img' aria-label='ChaskiFlow'><path d='M9 46C21 46 21 20 33 20S45 44 55 17'/><circle cx='9' cy='46' r='3.5' fill='#5aa7f0'/><circle cx='33' cy='20' r='3.5' fill='#5aa7f0'/><circle cx='55' cy='17' r='4.5' fill='#5aa7f0'/><path d='M49 14l6-1-2 6'/></svg>

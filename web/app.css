@@ -25,8 +25,11 @@ a { color: var(--accent); }
 .topbar { background: var(--header); color: var(--header-fg); display: flex; align-items: center; gap: 10px;
   padding: 0 14px; height: 48px; flex: none; }
 .topbar .brand { font-weight: 600; font-size: 16px; letter-spacing: .2px; display: flex; align-items: center; gap: 8px; }
-.logo { width: 28px; height: 28px; flex: none; display: block; }
-.login-logo { width: 56px; height: 56px; margin: 0 auto 8px; display: block; }
+.logo { width: 32px; height: 32px; flex: none; display: block; }
+.login-logo { width: 64px; height: 64px; margin: 0 auto 6px; display: block; }
+.about-logo { width: 52px; height: 52px; flex: none; }
+.logo-svg { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.logo-svg .dot { fill: var(--accent); stroke: none; }
 .login h1 { text-align: center; }
 .hi .del { opacity: 0; padding: 0 6px; }
 .hi:hover .del, .hi .del:focus { opacity: 1; }

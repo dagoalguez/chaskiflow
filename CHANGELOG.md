@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.11.4 — 2026-10-07
+- **Logo transparente**, en el mismo estilo de línea que el de quipullm (trazo azul, sin fondo): el flujo de nodos con la flecha de llegada. En el login y en «Acerca de» es SVG en línea y toma el color del tema; en la cabecera y la pestaña usa `web/logo.svg`.
+
 ## 0.11.3 — 2026-10-07
 - **Créditos dentro de la aplicación**: línea «ChaskiFlow vX · Diego Guevara B. · Apache-2.0» en el login y al pie de la barra lateral, y diálogo «Acerca de» (autor, contribuciones, licencia, aviso de copyright). `/api/health` informa autor, contribuciones y licencia.
 
