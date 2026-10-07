@@ -8,7 +8,8 @@ import uuid
 import zlib
 from pathlib import Path
 
-from .engine import Engine, WorkflowError
+from .engine import Engine, WorkflowError, _graph, normalize
+from .templating import find_refs
 from .util import now_iso
 
 MAX_STORED_RESULT = 50 * 1024 * 1024
@@ -105,6 +106,11 @@ class RunManager:
     # ----- iniciar ---------------------------------------------------------------
     def start(self, wf, user, variables=None, only=None, seed_run=None, trigger="manual"):
         """wf: fila de workflows. Devuelve run_id; la ejecución sigue en un hilo."""
+        return self.start_ex(wf, user, variables, only, seed_run, trigger)[0]
+
+    def start_ex(self, wf, user, variables=None, only=None, seed_run=None, trigger="manual"):
+        """Como start(), pero devuelve (run_id, reutilizados). 'only' = ejecutar solo esos pasos; los
+        demás toman su último resultado correcto (de 'seed_run' o de las ejecuciones recientes)."""
         definition = json.loads(wf["definition"])
         definition["name"] = wf["name"]
         engine = self.engine_for(wf["owner_id"])
@@ -113,9 +119,16 @@ class RunManager:
             raise RunError("El workflow no es válido: " + "; ".join(errors), 422)
         if self.active_run_for(wf["id"]):
             raise RunError("Este workflow ya se está ejecutando", 409)
-        seed = None
+        seed, reused = None, []
         if only is not None:
-            seed = self._seed_from(seed_run)
+            known = {n["id"] for n in definition.get("nodes", [])}
+            if not only or not only <= known:
+                raise RunError("Paso inexistente en este workflow", 400)
+            if seed_run:
+                seed, info = self._seed_from(seed_run), {}
+            else:
+                seed, info = self._seed_latest(wf["id"])
+            reused = self._check_seed(engine, definition, only, seed, info)
         run_id = time.strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:6]
         lr = LiveRun(run_id, wf["id"])
         with self.lock:
@@ -127,7 +140,49 @@ class RunManager:
         th = threading.Thread(target=self._worker, name="run-" + run_id, daemon=True,
                               args=(lr, engine, definition, variables or {}, only, seed))
         th.start()
-        return run_id
+        return run_id, reused
+
+    def _seed_latest(self, workflow_id, depth=20):
+        """Último resultado correcto de cada paso entre las ejecuciones recientes del workflow."""
+        seed, info = {}, {}
+        runs = self.db.all("SELECT id, started FROM runs WHERE workflow_id=? AND status IN "
+                           "('ok','partial','error','cancelled') ORDER BY started DESC LIMIT ?", (workflow_id, depth))
+        for r in runs:
+            for row in self.db.all("SELECT * FROM run_nodes WHERE run_id=? AND status='ok'", (r["id"],)):
+                if row["node_id"] in seed:
+                    continue
+                seed[row["node_id"]] = {"id": row["node_id"], "label": row["label"], "type": row["type"],
+                                        "status": "ok", "result": unpack_result(row["result"]),
+                                        "error": None, "logs": [], "config": None, "duration": 0.0,
+                                        "started": row["started"], "finished": row["finished"]}
+                info[row["node_id"]] = {"run_id": r["id"], "finished": row["finished"] or r["started"]}
+        return seed, info
+
+    def _check_seed(self, engine, definition, only, seed, info):
+        """Falla con un mensaje claro si a un paso le falta el resultado de un antecesor que usa."""
+        wf = normalize(definition)
+        nodes = {n["id"]: n for n in wf["nodes"]}
+        preds, _ = _graph(wf)
+        reused, missing = [], []
+        for nid in only:
+            n = nodes[nid]
+            plugin = engine.registry.get(n.get("type"))
+            refs = find_refs(n.get("config"))
+            for p in preds.get(nid, []):
+                if p in only:
+                    continue
+                needed = nodes[p]["label"] in refs or p in refs or (plugin is not None and plugin.wants_inputs)
+                if not needed:
+                    continue
+                if (seed or {}).get(p):
+                    reused.append({"node": nodes[p]["label"], "run_id": (info or {}).get(p, {}).get("run_id"),
+                                   "finished": (info or {}).get(p, {}).get("finished")})
+                else:
+                    missing.append(nodes[p]["label"])
+        if missing:
+            raise RunError("Este paso necesita el resultado de: %s, que aún no se ha ejecutado bien. "
+                           "Use «Hasta aquí» o ejecute el flujo completo una vez." % ", ".join(sorted(set(missing))), 409)
+        return reused
 
     def _seed_from(self, run_id):
         if not run_id:
@@ -137,7 +192,8 @@ class RunManager:
             if r["status"] == "ok":
                 seed[r["node_id"]] = {"id": r["node_id"], "label": r["label"], "type": r["type"],
                                       "status": "ok", "result": unpack_result(r["result"]),
-                                      "error": None, "logs": [], "config": None, "duration": 0.0}
+                                      "error": None, "logs": [], "config": None, "duration": 0.0,
+                                      "started": r["started"], "finished": r["finished"]}
         return seed
 
     # ----- hilo de ejecución -------------------------------------------------------

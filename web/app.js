@@ -417,7 +417,7 @@
       var v = title.value.trim(); if (!v) { title.value = w.name; return; }
       api("PUT", "/api/workflows/" + w.id, { name: v, version: w.version }).then(function (d) { w.name = v; w.version = d.workflow.version; refreshList(); },
         function (e) { if (e.status === 409) { S.conflict = true; renderMain(); } else toast(e.message); }); } });
-    var runBtn = h("button", { class: "btn primary", id: "runbtn", text: t("run"), disabled: !canRun(), onclick: startRun });
+    var runBtn = h("button", { class: "btn primary", id: "runbtn", text: t("run"), disabled: !canRun(), onclick: function () { startRun(); } });
     var stopBtn = h("button", { class: "btn danger hidden", id: "stopbtn", text: t("stop"), onclick: cancelRun });
     var bar = h("div", { class: "wf-bar" }, title,
       h("span", { id: "savestate", class: "savestate" }),
@@ -875,6 +875,16 @@
       panelBtn("insp", lang === "es" ? "Mostrar u ocultar el panel del paso" : "Show or hide the step panel", lang === "es" ? "☰ Panel" : "☰ Panel"),
       edit ? h("button", { class: "btn sm", text: lang === "es" ? "Ordenar" : "Auto-layout", onclick: function () { autoLayout(true); G.fitted = null; touch(); renderMain(); } }) : null,
       edit ? h("button", { class: "btn sm danger", text: t("remove"), disabled: !(G.sel || G.selEdge), onclick: deleteSelection }) : null,
+      (G.sel && nmap[G.sel] && canRun()) ? h("span", { class: "gplay" },
+        h("button", { class: "btn sm", text: "▶ " + (lang === "es" ? "Este paso" : "This step"),
+          title: lang === "es" ? "Ejecuta solo este paso con los últimos resultados de los pasos anteriores" : "Runs only this step using the latest results of earlier steps",
+          onclick: function () { runPartial(G.sel, "only"); } }),
+        h("button", { class: "btn sm", text: "▶ " + (lang === "es" ? "Hasta aquí" : "Up to here"),
+          title: lang === "es" ? "Ejecuta los pasos anteriores y este" : "Runs earlier steps and this one",
+          onclick: function () { runPartial(G.sel, "until"); } }),
+        h("button", { class: "btn sm", text: "▶ " + (lang === "es" ? "Desde aquí" : "From here"),
+          title: lang === "es" ? "Ejecuta este paso y los siguientes, reutilizando los resultados anteriores" : "Runs this step and the following ones, reusing earlier results",
+          onclick: function () { runPartial(G.sel, "from"); } })) : null,
       h("span", { class: "muted", style: "font-size:12px", text: lang === "es" ? "Un paso nuevo se conecta al nodo seleccionado. Arrastre del punto derecho de un nodo al izquierdo de otro para conectar" : "Drag from a node's right dot to another's left dot to connect" }));
 
     var inspector = h("div", { class: "inspector" });
@@ -925,17 +935,26 @@
     if (r) r.disabled = on || !canRun();
     if (s) s.classList.toggle("hidden", !on);
   }
-  function startRun() {
+  function startRun(only) {
     var w = S.current;
-    clearTimeout(null);
+    if (S.live && !S.live.done) { toast(lang === "es" ? "Ya hay una ejecución en curso" : "A run is already in progress"); return; }
     doSaveNow().then(function () {
       var vars = clone(w.def.variables || {});
-      return api("POST", "/api/workflows/" + w.id + "/run", { variables: vars });
+      var body = { variables: vars }; if (only) body.only = only;
+      return api("POST", "/api/workflows/" + w.id + "/run", body);
     }).then(function (d) {
-      S.live = { id: d.run_id, after: 0, nodes: {}, order: [], status: "queued", done: false, logs: {}, wfname: w.name, started: Date.now() };
+      S.live = { id: d.run_id, after: 0, nodes: {}, order: [], status: "queued", done: false, logs: {}, wfname: w.name, started: Date.now(), reused: d.reused || [], partial: !!only };
       S.viewRun = null;
       setRunning(true); renderRunPane(); poll();
     }, function (e) { toast(e.message); });
+  }
+  // ejecución parcial desde el grafo: modo "only" (solo este), "until" (hasta aquí), "from" (desde aquí)
+  function runPartial(id, mode) {
+    var ids = {}; ids[id] = 1;
+    if (mode === "until") Object.keys(ancestors(id)).forEach(function (k) { ids[k] = 1; });
+    if (mode === "from") Object.keys(descendants(id)).forEach(function (k) { ids[k] = 1; });
+    var list = Object.keys(ids).filter(function (k) { var n = S.current.def.nodes.filter(function (x) { return x.id === k; })[0]; return n && n.enabled !== false; });
+    startRun(list);
   }
   function doSaveNow() {
     return new Promise(function (resolve) {
@@ -984,7 +1003,8 @@
     var head = h("div", { class: "mh" },
       st === "running" ? h("span", { class: "spin" }) : h("span", { text: { ok: "✓", error: "✗", partial: "◐", skipped: "↷", cancelled: "■", pending: "·" }[st] || "·" }),
       h("span", { text: n.label }), n.type ? h("span", { class: "muted", style: "font-weight:400;font-size:12px", text: n.type }) : null,
-      h("span", { class: "st", text: (t(st) || st) + (n.duration != null ? " · " + fmtDur(n.duration) : "") }));
+      h("span", { class: "st", text: (st === "pending" && S.live && S.live.partial && (S.live.done || (S.live.reused || []).some(function (r) { return r.node === n.label; }))
+        ? (lang === "es" ? "Reutilizado" : "Reused") : (t(st) || st)) + (n.duration != null ? " · " + fmtDur(n.duration) : "") }));
     var m = h("div", { class: "msg " + st, onclick: onclick }, head);
     if (n.summary) m.appendChild(h("div", { class: "summ", text: typeof n.summary === "string" ? n.summary : JSON.stringify(n.summary) }));
     if (n.logs && n.logs.length) {
@@ -1014,6 +1034,10 @@
     }
     if (L) {
       body.appendChild(h("div", { class: "msg sys", text: (L.status === "queued" ? t("queued") : t("run_started")) + " · " + fmtDate(new Date(L.started).toISOString()) }));
+      if (L.partial) body.appendChild(h("div", { class: "msg sys", text: lang === "es" ? "Ejecución parcial" : "Partial run" }));
+      (L.reused || []).forEach(function (r) {
+        body.appendChild(h("div", { class: "msg sys", text: (lang === "es" ? "Reutiliza el resultado de " : "Reuses the result of ") + r.node + (r.finished ? " (" + fmtDate(r.finished) + ")" : "") }));
+      });
       L.order.forEach(function (id) { body.appendChild(nodeMsg(L.nodes[id], function () { if (L.done) showNodeResult(L.id, id); })); });
       if (L.done) {
         body.appendChild(h("div", { class: "msg sys", text: (t(L.status) || L.status) + (L.duration != null ? " · " + fmtDur(L.duration) : "") }));
@@ -1048,7 +1072,7 @@
       body.appendChild(nodeMsg({ id: n.node_id, label: n.label, type: n.type, status: n.status, duration: n.duration, error: n.error, logs: n.logs || [],
         summary: n.summary }, function () { if (n.has_result) showNodeResult(run.id, n.node_id); }));
     });
-    var vb = S.current && canRun() ? h("button", { class: "btn sm", text: "↻ " + t("run"), onclick: startRun }) : null;
+    var vb = S.current && canRun() ? h("button", { class: "btn sm", text: "↻ " + t("run"), onclick: function () { startRun(); } }) : null;
     if (vb) body.appendChild(vb);
   }
   function showNodeResult(runId, nodeId) {

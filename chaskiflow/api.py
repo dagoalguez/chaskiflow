@@ -502,13 +502,14 @@ def wf_run(req):
     if only is not None and (not isinstance(only, list) or not all(isinstance(x, str) for x in only)):
         raise ApiError(400, "'only' debe ser una lista de ids de nodo")
     try:
-        run_id = req.app.runs.start(wf, req.user, variables,
-                                    only=set(only) if only is not None else None,
-                                    seed_run=b.get("from_run"))
+        run_id, reused = req.app.runs.start_ex(wf, req.user, variables,
+                                               only=set(only) if only is not None else None,
+                                               seed_run=b.get("from_run"))
     except RunError as e:
         raise ApiError(e.status, str(e))
-    req.db.audit(req.user, "run.start", "%s #%d %s" % (wf["name"], wf["id"], run_id))
-    return 202, {"run_id": run_id}
+    req.db.audit(req.user, "run.start", "%s #%d %s%s" % (wf["name"], wf["id"], run_id,
+                                                         " (parcial: %d paso(s))" % len(only) if only else ""))
+    return 202, {"run_id": run_id, "reused": reused}
 
 
 @route("GET", "/api/workflows/(?P<id>\\d+)/runs")

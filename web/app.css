@@ -219,3 +219,5 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .topbar button.panel-toggle { font-size: 18px; line-height: 1; padding: 3px 9px; }
 .btn.panel-toggle.on { background: var(--panel2); }
 .rp-head .btn.icon { margin-left: 6px; }
+
+.gtools .gplay { display: inline-flex; gap: 4px; margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--border); }

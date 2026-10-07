@@ -261,6 +261,7 @@ class Engine:
                 if prev and prev.get("status") == "ok":
                     base.update(prev)
                     base["status"] = "ok"
+                    base["reason"] = "resultado reutilizado"
                     status[nid] = "ok"
                     record_scope(nid, base)
                 else:

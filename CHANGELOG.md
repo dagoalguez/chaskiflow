@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0 — 2026-10-07
+- **Ejecución parcial desde el grafo**: al seleccionar un nodo aparecen «▶ Este paso», «▶ Hasta aquí» y «▶ Desde aquí».
+  Los pasos que no se ejecutan reutilizan su último resultado correcto (de las 20 ejecuciones más recientes) y la ejecución
+  parcial queda en el historial. Si a un paso le falta el resultado de un antecesor que usa, se explica con un mensaje claro
+  (use «Hasta aquí» o ejecute el flujo completo una vez). El panel de ejecuciones indica «Ejecución parcial» y qué resultados reutiliza.
+- API: `POST /api/workflows/{id}/run` con `{"only": [ids]}` (ya existía) ahora toma por defecto los últimos resultados correctos y
+  devuelve `reused`; `from_run` sigue permitiendo fijar una ejecución concreta.
+- 8 pruebas nuevas (229 en total) y prueba de navegador `tests/ui_partial_smoke.py`.
+
 ## 0.7.1 — 2026-10-07
 - **Corrección (Windows): `[WinError 5] Acceso denegado` al exportar** cuando el CSV/XLSX de hoy ya existe y está abierto
   (por ejemplo en Excel) o lo bloquea un antivirus. `export_csv` y `export_xlsx` reintentan unos segundos y, si sigue
