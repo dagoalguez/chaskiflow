@@ -276,6 +276,15 @@ class Scan(Base):
         self.assertIn("la IA no respondió bien", b[("ALFA", "2024")]["nota"])
         self.assertEqual(b[("ALFA", "2022")]["identificado"], "sí")             # el texto sigue funcionando
 
+    def test_dead_ai_server_does_not_abort_text_pdfs(self):
+        with FakeLLM(mode="http500") as llm:
+            res = self.scan(self.folder, llm)
+            res2 = self.scan(self.folder)
+        b = self.by(res)
+        self.assertEqual(b[("ALFA", "2022")]["identificado"], "sí")             # PDF con texto: procesado igual
+        self.assertEqual(b[("BETA", "2021")]["identificado"], "sí")
+        self.assertGreaterEqual(res["stats"]["no_leidos"], 1)
+
     def test_only_local_ai_servers_by_default(self):
         r = self.run_node("pdf_keyword_scan", {"folder": self.folder, "output_dir": self.folder, "base_url": "http://93.184.216.34:1234/v1"})
         self.assertEqual(r["status"], "error")

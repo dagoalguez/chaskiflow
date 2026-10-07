@@ -274,7 +274,7 @@ def scan_pdf(item, terms, terms_txt, vis, opt, ctx, deadline):
             res["vacias"] = res.get("vacias", 0) + 1
             continue
         res["sin_texto"] += 1
-        if vis is None:
+        if vis is None or opt.get("ia_caida"):
             res["no_leidas"] += 1
             continue
         if ia_used >= opt["ia_max_paginas"] or (deadline and time.time() > deadline):
@@ -304,7 +304,11 @@ def scan_pdf(item, terms, terms_txt, vis, opt, ctx, deadline):
             if len(res["notas"]) < 4:
                 res["notas"].append("p. %d: la IA no respondió bien (%s)" % (i + 1, str(e)[:80]))
             if ia_fail >= 3 and not res["leidas_ia"]:
-                raise RuntimeError("El servidor de IA falla de forma repetida: %s" % e)
+                # No se aborta: los PDF con texto se siguen buscando directo; los escaneados quedan para revisión manual.
+                opt["ia_caida"] = True
+                res["ia_caida"] = True
+                ctx.log("AVISO: el servidor de IA falla (%s). Se sigue SOLO con PDF que tienen texto; los escaneados van a REVISAR_MANUAL. "
+                        "Corrija la IA y vuelva a ejecutar: solo repetirá los escaneados pendientes." % str(e)[:160])
             continue
         for term, ctxt in found.items():
             h = res["hits"].setdefault(term, {"n": 0, "paginas": [], "contexto": [], "fuente": "IA"})
@@ -388,7 +392,7 @@ def run(config, ctx):
                              "identificado": "", "metodo": "pendiente", "nota": "tiempo máximo total agotado; vuelva a ejecutar"})
                 continue
             res = scan_pdf(it, terms, [t for t, _ in terms], vis, opt, ctx, deadline)
-            if not res["error"]:
+            if not res["error"] and not res.get("ia_caida"):
                 cache[key] = {"sig": sig, "res": res}
                 _atomic_json(cache_path, cache)
         hits = res["hits"]
