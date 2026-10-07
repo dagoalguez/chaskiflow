@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.11.1 — 2026-10-07
+- El prompt «Crear con IA» (`docs/PROMPT_CREAR_PLUGIN.txt`) ya no menciona dónde corre ChaskiFlow; se conservan las reglas técnicas del entorno.
+
 ## 0.11.0 — 2026-10-07
 - **Nuevo ejemplo «Sucursales desde una lista de enlaces»** (`examples/sucursales_desde_enlaces.json`, `docs/SUCURSALES.md`):
   CSV/TXT de sitios → rastreo completo → IA local → CSV, Excel y resumen por sitio.
