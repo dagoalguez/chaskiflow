@@ -456,6 +456,45 @@ def wf_restore(req):
     return {"workflow": public_wf(fresh, "edit", req.db)}
 
 
+ACTIVE = ("queued", "running")
+
+
+def _purge_workflow(req, wf):
+    """Borra para siempre un workflow de la papelera con sus programaciones, accesos y ejecuciones."""
+    busy = req.db.one("SELECT COUNT(*) AS n FROM runs WHERE workflow_id=? AND status IN ('queued','running')",
+                      (wf["id"],))
+    if busy and busy["n"]:
+        raise ApiError(409, "Tiene una ejecución en curso; espere a que termine")
+    n = req.db.one("SELECT COUNT(*) AS n FROM runs WHERE workflow_id=?", (wf["id"],))["n"]
+    req.db.run("DELETE FROM runs WHERE workflow_id=?", (wf["id"],))           # run_nodes cae en cascada
+    req.db.run("DELETE FROM schedules WHERE workflow_id=?", (wf["id"],))
+    req.db.run("DELETE FROM workflow_shares WHERE workflow_id=?", (wf["id"],))
+    req.db.run("DELETE FROM workflows WHERE id=?", (wf["id"],))
+    req.db.audit(req.user, "workflow.purge", "%s #%d (%d ejecución(es))" % (wf["name"], wf["id"], n))
+
+
+@route("DELETE", "/api/workflows/(?P<id>\\d+)/purge", "editor")
+def wf_purge(req):
+    wf, _ = get_wf(req, req.pid(), "view", deleted=True)
+    _owner_only(req, wf)
+    _purge_workflow(req, wf)
+    return {"ok": True}
+
+
+@route("POST", "/api/workflows/trash/empty", "editor")
+def wf_trash_empty(req):
+    done = skipped = 0
+    for wf in req.db.all("SELECT * FROM workflows WHERE deleted_at IS NOT NULL"):
+        if req.user["role"] != "admin" and wf["owner_id"] != req.user["id"]:
+            continue
+        try:
+            _purge_workflow(req, wf)
+            done += 1
+        except ApiError:
+            skipped += 1
+    return {"purged": done, "skipped": skipped}
+
+
 @route("POST", "/api/workflows/(?P<id>\\d+)/duplicate", "editor")
 def wf_duplicate(req):
     wf, _ = get_wf(req, req.pid(), "view")
@@ -612,6 +651,34 @@ def run_cancel(req):
         raise ApiError(e.status, str(e))
     req.db.audit(req.user, "run.cancel", r["id"])
     return {"ok": True}
+
+
+def _delete_run_rows(req, rid):
+    req.db.run("DELETE FROM runs WHERE id=?", (rid,))
+    req.app.runs.forget(rid)
+
+
+@route("DELETE", "/api/runs/(?P<rid>[0-9A-Za-z-]+)", "editor")
+def run_delete(req):
+    r = get_run(req, req.params["rid"], "edit")
+    if r["status"] in ACTIVE:
+        raise ApiError(409, "La ejecución sigue en curso: deténgala primero")
+    _delete_run_rows(req, r["id"])
+    req.db.audit(req.user, "run.delete", "%s (%s)" % (r["id"], r["workflow_name"] or ""))
+    return {"ok": True}
+
+
+@route("POST", "/api/workflows/(?P<id>\\d+)/runs/clear", "editor")
+def wf_runs_clear(req):
+    wf, _ = get_wf(req, req.pid(), "edit")
+    keep = max(0, min(int(req.body().get("keep") or 0), 1000))
+    rows = req.db.all("SELECT id FROM runs WHERE workflow_id=? AND status NOT IN ('queued','running') "
+                      "ORDER BY started DESC", (wf["id"],))
+    ids = [r["id"] for r in rows[keep:]]
+    for rid in ids:
+        _delete_run_rows(req, rid)
+    req.db.audit(req.user, "runs.clear", "%s #%d (%d ejecución(es), se conservan %d)" % (wf["name"], wf["id"], len(ids), keep))
+    return {"deleted": len(ids)}
 
 
 # ======================================================================== secretos

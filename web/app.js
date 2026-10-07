@@ -155,6 +155,7 @@
         function (e) { err.textContent = e.message; });
     }
     var form = h("form", { class: "login", onsubmit: function (ev) { ev.preventDefault(); submit(); } },
+      h("img", { class: "login-logo", src: "/static/logo.svg", alt: "" }),
       h("h1", { text: "ChaskiFlow" }),
       h("div", { class: "muted", text: needsSetup ? t("setup_hint") : "" }),
       h("div", { class: "field" }, h("div", { class: "fl", text: t("user") }), u),
@@ -216,6 +217,10 @@
     document.body.appendChild(ov);
     return { close: close, el: ov };
   }
+  function confirm_(title, message, okLabel, cb) {
+    dialog(title, h("div", { text: message, style: "white-space:pre-line" }),
+      [{ label: t("cancel") }, { label: okLabel, cls: "danger", fn: function () { cb(); } }]);
+  }
   function prompt_(title, label, value, cb) {
     var inp = h("input", { type: "text", value: value || "" });
     var d = dialog(title, h("div", { class: "field" }, h("div", { class: "fl", text: label }), inp),
@@ -254,19 +259,22 @@
     var top = h("div", { class: "topbar" },
       h("button", { class: "panel-toggle", "data-panel": "sb", title: lang === "es" ? "Mostrar u ocultar la lista de workflows" : "Show or hide the workflow list", "aria-label": "Workflows", text: "☰",
         onclick: function () { setPanelHidden("sb", !panelHidden("sb")); } }),
-      h("span", { class: "brand", text: "⚙ ChaskiFlow" }), h("span", { class: "spacer" }),
+      h("span", { class: "brand" }, h("img", { class: "logo", src: "/static/logo.svg", alt: "" }), "ChaskiFlow"), h("span", { class: "spacer" }),
       h("span", { class: "who", text: (S.user.display_name || S.user.username) + " · " + S.user.role }),
       h("button", { text: "⚙", title: t("settings"), onclick: settingsDialog }),
       h("button", { text: t("logout"), onclick: function () { api("POST", "/api/logout").then(function () { S.user = null; showLogin(); }); } }));
     els.list = h("div", { class: "list" });
     var canCreate = S.user.role !== "viewer";
+    function link(ic, label, fn) { return h("button", { class: "sb-link", onclick: fn }, h("span", { class: "ic", text: ic }), h("span", { text: label })); }
     var sbFoot = h("div", { class: "sb-foot" },
-      h("button", { class: "btn sm", text: "🗑 " + t("trash"), onclick: trashDialog }),
-      h("button", { class: "btn sm", text: "⏰ " + t("schedules"), onclick: allSchedulesDialog }),
-      h("button", { class: "btn sm", text: "🔑 " + t("secrets"), onclick: secretsDialog }),
-      isAdmin ? [h("button", { class: "btn sm", text: "🧩 " + t("plugins"), onclick: pluginsDialog }),
-                 h("button", { class: "btn sm", text: "👥 " + t("users"), onclick: usersDialog }),
-                 h("button", { class: "btn sm", text: "📜 " + t("audit"), onclick: auditDialog })] : null);
+      h("div", { class: "sb-sec", text: lang === "es" ? "Mi espacio" : "My space" }),
+      link("⏰", t("schedules"), allSchedulesDialog),
+      link("🔑", t("secrets"), secretsDialog),
+      link("🗑", t("trash"), trashDialog),
+      isAdmin ? [h("div", { class: "sb-sec", text: lang === "es" ? "Administración" : "Administration" }),
+                 link("🧩", t("plugins"), pluginsDialog),
+                 link("👥", t("users"), usersDialog),
+                 link("📜", t("audit"), auditDialog)] : null);
     var side = h("div", { class: "sidebar" },
       h("div", { class: "sb-head" },
         canCreate ? h("button", { class: "btn primary", style: "flex:1", text: t("new_wf"), onclick: createWorkflow }) : null,
@@ -321,18 +329,38 @@
     }, function (e) { toast(e.message); });
   }
   function trashDialog() {
+    var es = lang === "es";
     var body = h("div", { text: "…" });
-    var d = dialog(t("trash"), body);
-    api("GET", "/api/workflows/trash").then(function (r) {
-      clear(body);
-      if (!r.workflows.length) body.appendChild(h("div", { class: "muted", text: "—" }));
-      r.workflows.forEach(function (w) {
-        body.appendChild(h("div", { style: "display:flex;gap:8px;align-items:center;padding:4px 0" },
-          h("span", { style: "flex:1", text: w.name + " · " + fmtDate(w.deleted_at) }),
-          h("button", { class: "btn sm", text: t("restore"), onclick: function () {
-            api("POST", "/api/workflows/" + w.id + "/restore").then(function () { d.close(); refreshList(); }, function (e) { toast(e.message); }); } })));
-      });
-    });
+    var d = dialog(t("trash"), body, [{ label: t("close") }, { label: es ? "Vaciar papelera" : "Empty trash", cls: "danger", keep: true, fn: function () {
+      confirm_(es ? "Vaciar papelera" : "Empty trash", es
+        ? "Se eliminarán para siempre todos los workflows de la papelera, con sus ejecuciones y programaciones. No se puede deshacer."
+        : "All workflows in the trash will be permanently deleted with their runs and schedules. This cannot be undone.",
+        es ? "Eliminar todo" : "Delete all", function () {
+          api("POST", "/api/workflows/trash/empty").then(function (r) {
+            toast((es ? "Eliminados definitivamente: " : "Permanently deleted: ") + r.purged + (r.skipped ? " · " + (es ? "omitidos: " : "skipped: ") + r.skipped : ""));
+            draw();
+          }, function (e) { toast(e.message); });
+        });
+      return false; } }]);
+    function draw() {
+      api("GET", "/api/workflows/trash").then(function (r) {
+        clear(body);
+        if (!r.workflows.length) body.appendChild(h("div", { class: "muted", text: es ? "La papelera está vacía." : "Trash is empty." }));
+        body.appendChild(h("div", { class: "muted", style: "font-size:12px;margin-bottom:6px", text: es
+          ? "«Eliminar definitivamente» borra el workflow con su historial de ejecuciones y programaciones." : "“Delete permanently” removes the workflow with its run history and schedules." }));
+        r.workflows.forEach(function (w) {
+          body.appendChild(h("div", { style: "display:flex;gap:8px;align-items:center;padding:4px 0" },
+            h("span", { style: "flex:1", text: w.name + " · " + fmtDate(w.deleted_at) }),
+            h("button", { class: "btn sm", text: t("restore"), onclick: function () {
+              api("POST", "/api/workflows/" + w.id + "/restore").then(function () { draw(); refreshList(); }, function (e) { toast(e.message); }); } }),
+            h("button", { class: "btn sm danger", text: es ? "Eliminar definitivamente" : "Delete permanently", onclick: function () {
+              confirm_(es ? "Eliminar definitivamente" : "Delete permanently", (es ? "¿Eliminar para siempre «" : "Permanently delete “") + w.name + (es ? "» y su historial? No se puede deshacer." : "” and its history? This cannot be undone."),
+                es ? "Eliminar" : "Delete", function () {
+                  api("DELETE", "/api/workflows/" + w.id + "/purge").then(function () { draw(); }, function (e) { toast(e.message); }); }); } })));
+        });
+      }, function (e) { clear(body); body.appendChild(h("div", { text: e.message })); });
+    }
+    draw();
   }
   function importDialog() {
     var ta = h("textarea", { rows: 14, placeholder: "{ \"name\": \"...\", \"nodes\": [...], \"edges\": [...] }" });
@@ -372,6 +400,12 @@
       loadRuns();
     }, function (e) { toast(e.message); });
   }
+  function closeWorkflow() {
+    flushSave(); stopPolling();
+    S.current = null; S.live = null; S.viewRun = null; S.runs = []; S.conflict = false;
+    document.title = "ChaskiFlow";
+    renderList(); renderMain();
+  }
   function canEdit() { return S.current && S.current.access === "edit" && S.user.role !== "viewer"; }
   function canRun() { return S.current && (S.current.access === "edit" || S.current.access === "run") && S.user.role !== "viewer"; }
 
@@ -390,9 +424,10 @@
     api("PUT", "/api/workflows/" + w.id, { definition: w.def, version: w.version }).then(function (d) {
       w.version = d.workflow.version; saving = false;
       if (pendingSave) { pendingSave = false; S.saveState = "dirty"; doSave(); return; }
-      S.saveState = "saved"; updateSaveState(); S.current.problems = null;
+      S.saveState = "saved"; updateSaveState(); w.problems = null;
     }, function (e) {
       saving = false;
+      if (S.current !== w) return;
       if (e.status === 409) { S.conflict = true; S.saveState = "conflict"; renderMain(); }
       else { S.saveState = "error"; updateSaveState(e.message); }
     });
@@ -425,7 +460,9 @@
       !canEdit() ? h("span", { class: "badge", text: t("readonly") }) : null,
       h("button", { class: "btn", text: t("validate"), onclick: validate }),
       runBtn, stopBtn,
-      h("button", { class: "btn", text: "⋯", title: t("details"), onclick: moreMenu }));
+      h("button", { class: "btn", text: "⋯", title: t("details"), onclick: moreMenu }),
+      h("button", { class: "btn icon close-wf", text: "✕", title: lang === "es" ? "Cerrar este workflow" : "Close this workflow",
+        "aria-label": lang === "es" ? "Cerrar workflow" : "Close workflow", onclick: closeWorkflow }));
     var tabs = h("div", { class: "tabs" },
       h("button", { class: "tab" + (S.tab === "graph" ? " active" : ""), text: t("graph"), onclick: function () { S.tab = "graph"; renderMain(); } }),
       h("button", { class: "tab" + (S.tab === "runs" ? " active" : ""), text: t("runs"), onclick: function () { S.tab = "runs"; renderMain(); } }),
@@ -1048,7 +1085,9 @@
       body.appendChild(h("div", { class: "muted", text: S.runs.length ? "" : t("no_runs") }));
     }
     if (S.runs.length) {
-      body.appendChild(h("div", { class: "muted", style: "font-size:12px;margin-top:8px", text: t("history") }));
+      body.appendChild(h("div", { style: "display:flex;align-items:center;margin-top:8px" },
+        h("span", { class: "muted", style: "font-size:12px;flex:1", text: t("history") }),
+        canEdit() ? h("button", { class: "btn sm icon", title: lang === "es" ? "Limpiar historial…" : "Clear history…", text: "🧹", onclick: clearHistoryDialog }) : null));
       var hist = h("div", { class: "hist" });
       S.runs.slice(0, 10).forEach(function (r) { hist.appendChild(runRow(r)); });
       body.appendChild(hist);
@@ -1057,7 +1096,32 @@
   function runRow(r) {
     return h("div", { class: "hi", onclick: function () { openPastRun(r.id); } }, h("span", { class: "dot " + r.status }),
       h("span", { style: "flex:1", text: fmtDate(r.started) + (r.started_by_name ? " · " + r.started_by_name : "") }),
-      h("span", { class: "muted", text: fmtDur(r.duration) }));
+      h("span", { class: "muted", text: fmtDur(r.duration) }), delRunBtn(r));
+  }
+  function delRunBtn(r, after) {
+    if (!canEdit() || r.status === "running" || r.status === "queued") return null;
+    return h("button", { class: "btn icon del", text: "✕", title: lang === "es" ? "Eliminar esta ejecución del historial" : "Delete this run from history",
+      "aria-label": lang === "es" ? "Eliminar ejecución" : "Delete run", onclick: function (e) { e.stopPropagation(); deleteRun(r.id, after); } });
+  }
+  function deleteRun(id, after) {
+    var es = lang === "es";
+    confirm_(es ? "Eliminar ejecución" : "Delete run", es ? "Se quitará esta ejecución y sus resultados del historial. No se puede deshacer." : "This run and its results will be removed from history. This cannot be undone.",
+      es ? "Eliminar" : "Delete", function () {
+        api("DELETE", "/api/runs/" + id).then(function () {
+          if (S.viewRun && S.viewRun.id === id) S.viewRun = null;
+          toast(es ? "Ejecución eliminada" : "Run deleted"); loadRuns(); refreshList(); if (after) after();
+        }, function (e) { toast(e.message); });
+      });
+  }
+  function clearHistoryDialog() {
+    var es = lang === "es", keep = h("input", { type: "number", min: 0, max: 1000, value: 10, style: "width:90px" });
+    dialog(es ? "Limpiar historial" : "Clear history", h("div", null,
+      h("div", { class: "field" }, h("div", { class: "fl", text: es ? "Conservar las últimas N ejecuciones (0 = borrar todas)" : "Keep the last N runs (0 = delete all)" }), keep),
+      h("div", { class: "muted", style: "font-size:12px", text: es ? "Las ejecuciones en curso no se tocan. No se puede deshacer." : "Runs in progress are not touched. This cannot be undone." })),
+      [{ label: t("cancel") }, { label: es ? "Eliminar" : "Delete", cls: "danger", fn: function () {
+        api("POST", "/api/workflows/" + S.current.id + "/runs/clear", { keep: parseInt(keep.value, 10) || 0 }).then(function (r) {
+          S.viewRun = null; toast((es ? "Ejecuciones eliminadas: " : "Runs deleted: ") + r.deleted); loadRuns(); refreshList();
+        }, function (e) { toast(e.message); }); } }]);
   }
   function openPastRun(id) {
     api("GET", "/api/runs/" + id).then(function (d) {
@@ -1074,6 +1138,9 @@
     });
     var vb = S.current && canRun() ? h("button", { class: "btn sm", text: "↻ " + t("run"), onclick: function () { startRun(); } }) : null;
     if (vb) body.appendChild(vb);
+    var db = h("button", { class: "btn sm danger", style: "margin-left:6px", text: "🗑 " + (lang === "es" ? "Eliminar esta ejecución" : "Delete this run"),
+      onclick: function () { deleteRun(run.id, function () { renderRunPane(); }); } });
+    if (canEdit() && run.status !== "running" && run.status !== "queued") body.appendChild(db);
   }
   function showNodeResult(runId, nodeId) {
     var pre = h("pre", { class: "json", text: "…" });
@@ -1089,15 +1156,19 @@
     var steps = h("div", { class: "steps" });
     if (!S.runs.length) steps.appendChild(h("div", { class: "muted", style: "text-align:center", text: t("no_runs") }));
     else {
-      var tb = h("table", null, h("thead", null, h("tr", null, h("th", { text: t("status") }), h("th", { text: "Inicio" }), h("th", { text: t("by") }), h("th", { text: "Duración" }), h("th", { text: "" }))));
+      var tb = h("table", null, h("thead", null, h("tr", null, h("th", { text: t("status") }), h("th", { text: "Inicio" }), h("th", { text: t("by") }), h("th", { text: "Duración" }), h("th", { text: "" }), h("th", { text: "" }))));
       var tbody = h("tbody");
       S.runs.forEach(function (r) {
         tbody.appendChild(h("tr", { style: "cursor:pointer", onclick: function () { openPastRun(r.id); } },
           h("td", null, h("span", { class: "dot " + r.status }), " ", t(r.status) || r.status),
           h("td", { text: fmtDate(r.started) }), h("td", { text: r.started_by_name || r.trigger || "" }), h("td", { text: fmtDur(r.duration) }),
-          h("td", { class: "muted", text: r.error ? String(r.error).slice(0, 80) : "" })));
+          h("td", { class: "muted", text: r.error ? String(r.error).slice(0, 80) : "" }),
+          h("td", { style: "text-align:right" }, delRunBtn(r))));
       });
-      tb.appendChild(tbody); steps.appendChild(h("div", { class: "card", style: "padding:6px 10px" }, tb));
+      tb.appendChild(tbody);
+      if (canEdit()) steps.appendChild(h("div", { style: "text-align:right;margin-bottom:6px" },
+        h("button", { class: "btn sm danger", text: "🧹 " + (lang === "es" ? "Limpiar historial…" : "Clear history…"), onclick: clearHistoryDialog })));
+      steps.appendChild(h("div", { class: "card", style: "padding:6px 10px" }, tb));
     }
     ed.appendChild(steps);
   }

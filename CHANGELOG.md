@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.10.0 — 2026-10-07
+- **Logo e icono**: `web/logo.svg` (flujo de nodos con el «mensaje» en ámbar) en el login, la barra superior y como icono de la pestaña.
+- **Modo oscuro**: los campos de hora/fecha (p. ej. «Hora (del servidor)» al programar) ahora tienen el mismo estilo que el resto de
+  campos y el selector nativo usa el tema oscuro; antes quedaban con fondo claro y texto casi invisible.
+- **Cerrar workflow**: botón ✕ en la barra del workflow (vuelve a la pantalla inicial; guarda antes si hay cambios).
+- **Borrar ejecuciones**: ✕ en cada fila del historial (panel y pestaña Ejecuciones), «Eliminar esta ejecución» en el detalle y
+  «Limpiar historial…» (conservar las últimas N). Las ejecuciones en curso no se pueden borrar. API: `DELETE /api/runs/{id}`,
+  `POST /api/workflows/{id}/runs/clear {"keep": N}`.
+- **Papelera**: «Eliminar definitivamente» por workflow y «Vaciar papelera» (borra también su historial y programaciones; solo el
+  dueño o un administrador). API: `DELETE /api/workflows/{id}/purge`, `POST /api/workflows/trash/empty`.
+- **Barra lateral ordenada**: dos grupos («Mi espacio»: Programaciones, Secretos, Papelera; «Administración»: Plugins, Usuarios, Auditoría)
+  con una opción por fila.
+- Corrección: error de JavaScript si se cerraba o cambiaba de workflow mientras terminaba el guardado automático.
+- 5 pruebas nuevas (242 en total) y prueba de navegador `tests/ui_cleanup_smoke.py`. BD sin cambios (v2).
+
 ## 0.9.0 — 2026-10-07
 - **Crear plugins con IA**: Plugins → «✨ Crear con IA» muestra un prompt listo para copiar (`docs/PROMPT_CREAR_PLUGIN.txt`:
   contrato completo, reglas del entorno —solo librería estándar, solo texto— y formato de entrega) y un cuadro para pegar la

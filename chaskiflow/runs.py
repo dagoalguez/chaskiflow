@@ -281,6 +281,13 @@ class RunManager:
         return r
 
     # ----- mantenimiento -----------------------------------------------------------
+    def forget(self, run_id):
+        """Olvida el estado en memoria de una ejecución terminada (al borrarla del historial)."""
+        with self.lock:
+            lr = self.live.get(run_id)
+            if lr is not None and lr.done:
+                del self.live[run_id]
+
     def purge_old(self):
         if self.retention_days <= 0:
             return 0
