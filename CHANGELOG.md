@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.1 — 2026-10-07
+- **Grafo y ejecuciones del historial**: al abrir una ejecución pasada, el grafo ahora se pinta con el estado que tuvo cada paso
+  (ok, error, omitido, cancelado…). Al volver a «← Historial» o cambiar de workflow se limpia.
+- Prueba de navegador ampliada (`tests/ui_cleanup_smoke.py`).
+
 ## 0.10.0 — 2026-10-07
 - **Logo e icono**: `web/logo.svg` (flujo de nodos con el «mensaje» en ámbar) en el login, la barra superior y como icono de la pestaña.
 - **Modo oscuro**: los campos de hora/fecha (p. ej. «Hora (del servidor)» al programar) ahora tienen el mismo estilo que el resto de

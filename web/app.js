@@ -395,7 +395,7 @@
       var w = d.workflow;
       S.current = { id: w.id, name: w.name, description: w.description, version: w.version, access: w.access, owner_id: w.owner_id,
                     owner: w.owner, team_access: w.team_access, shares: w.shares, def: w.definition, problems: null };
-      S.saveState = "saved"; S.conflict = false; S.tab = "graph"; S.live = null; S.runs = [];
+      S.saveState = "saved"; S.conflict = false; S.tab = "graph"; S.live = null; S.viewRun = null; S.runs = [];
       renderList(); renderMain();
       loadRuns();
     }, function (e) { toast(e.message); });
@@ -405,6 +405,14 @@
     S.current = null; S.live = null; S.viewRun = null; S.runs = []; S.conflict = false;
     document.title = "ChaskiFlow";
     renderList(); renderMain();
+  }
+  // estado de un paso para pintar el grafo: ejecución en vivo o, si se abrió una del historial, esa ejecución
+  function runStatusOf(id) {
+    if (S.live) return S.live.nodes[id] ? S.live.nodes[id].status : "";
+    if (S.viewRun && S.viewRun.nodes) {
+      for (var i = 0; i < S.viewRun.nodes.length; i++) if (S.viewRun.nodes[i].node_id === id) return S.viewRun.nodes[i].status || "";
+    }
+    return "";
   }
   function canEdit() { return S.current && S.current.access === "edit" && S.user.role !== "viewer"; }
   function canRun() { return S.current && (S.current.access === "edit" || S.current.access === "run") && S.user.role !== "viewer"; }
@@ -787,9 +795,8 @@
     function updateEdgePaths() {
       edgeEls.forEach(function (x) { var d = edgePath(nmap[x.e.source], nmap[x.e.target]); x.vis.setAttribute("d", d); x.hit.setAttribute("d", d); });
     }
-    var live = S.live && !S.live.done ? S.live : (S.live || null);
     def.nodes.forEach(function (n) {
-      var p = S.pmap[n.type], st = live && live.nodes[n.id] ? live.nodes[n.id].status : "";
+      var p = S.pmap[n.type], st = runStatusOf(n.id);
       var g = sv("g", { class: "gnode" + (G.sel === n.id ? " sel" : "") + (n.enabled === false ? " off" : "") + (st ? " st-" + st : "") + (p ? "" : " bad"),
         transform: "translate(" + n.position.x + "," + n.position.y + ")" });
       g.appendChild(sv("rect", { class: "gbox", width: NW, height: NH, rx: 12 }));
@@ -946,10 +953,9 @@
     ed.appendChild(canvas); ed.appendChild(inspector);
     if (G.fitted !== w.id) { G.fitted = w.id; setTimeout(fit, 0); }
     S.graphRefresh = function () {
-      var lv = S.live;
       def.nodes.forEach(function (n) {
         var g = nodeEls[n.id]; if (!g) return;
-        var st = lv && lv.nodes[n.id] ? lv.nodes[n.id].status : "";
+        var st = runStatusOf(n.id);
         g.setAttribute("class", g.getAttribute("class").replace(/\bst-\S+/g, "").trim() + (st ? " st-" + st : ""));
       });
     };

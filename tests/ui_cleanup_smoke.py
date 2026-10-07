@@ -52,6 +52,12 @@ try:
         # borrar ejecuciones
         pg.click(".wf-item >> text=Uno"); pg.wait_for_selector(".gsvg")
         until(lambda: pg.locator(".rp-body .hi").count() == 3)
+        check(pg.locator(".gnode[class*=st-]").count() == 0, "sin ejecución abierta el grafo no tiene colores de estado")
+        pg.click(".rp-body .hi >> nth=0"); pg.wait_for_selector(".rp-body .msg")
+        until(lambda: pg.locator(".gnode.st-ok").count() == 1)
+        check(True, "al abrir una ejecución del historial el grafo muestra sus colores (nodo ok)")
+        pg.click("text=← Historial"); until(lambda: pg.locator(".gnode[class*=st-]").count() == 0)
+        check(True, "al volver al historial el grafo se limpia")
         pg.locator(".rp-body .hi").first.hover(); pg.locator(".rp-body .hi .del").first.click()
         pg.click(".overlay .btn.danger"); until(lambda: pg.locator(".rp-body .hi").count() == 2)
         check(True, "borrar una ejecución del historial (3 → 2)")
