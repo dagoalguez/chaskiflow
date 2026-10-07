@@ -54,7 +54,7 @@
       "key": "attachments",
       "label": "Adjuntos",
       "type": "any",
-      "help": "Ruta, lista de rutas o {{Csv.result.file_paths}}"
+      "help": "Una por línea. Para CSV y Excel juntos, escriba en dos líneas: {{Csv.result.file_paths}} y {{Excel.result.file_paths}}"
     },
     {
       "key": "mode",

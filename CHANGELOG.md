@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.2 — 2026-10-07
+- **Interfaz**: se quita la pestaña «Pasos»; el **Grafo** es la única vista de edición (junto a «Ejecuciones»). Sin nodo
+  seleccionado, el panel lateral muestra las **Variables** del workflow. Un paso nuevo se coloca a la derecha del nodo
+  seleccionado (sin superponerse) y queda conectado a él.
+- **Correo**: el campo Adjuntos acepta varias referencias, una por línea, p. ej. `{{Csv.result.file_paths}}` y
+  `{{Excel.result.file_paths}}` (CSV y Excel juntos).
+- **Ejemplo de noticias**: CSV y XLSX con exactamente los encabezados y el orden del archivo original (Medio, Fecha
+  publicación, Título, URL, Sección, Relevante, Palabras detectadas, Recurrencia, N° medios, Medios, ID recurrencia,
+  Contenido), el Excel también con columnas y nombres, y el correo adjunta ambos archivos.
+- 2 pruebas nuevas (207 en total), incl. verificación de encabezados exactos.
+
 ## 0.6.1 — 2026-10-07
 - **Nombre oficial: ChaskiFlow** (antes «Flowkit», provisional). Paquete `chaskiflow/`, variables de entorno `CHASKIFLOW_*` (secretos: `CHASKIFLOW_SECRET_*`), cookie `cf_session`. Licencia MIT confirmada.
 

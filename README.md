@@ -5,9 +5,9 @@ quiera una tarea nueva solo agrega una carpeta a `plugins/`, sin tocar el núcle
 
 **Solo librería estándar de Python.** Sin pip, sin npm, sin binarios, sin servicios.
 
-> Estado: **v0.6.1 (V3b)** — servidor web multiusuario por LAN, interfaz, plugins con aprobación del
+> Estado: **v0.6.2** — servidor web multiusuario por LAN, interfaz, plugins con aprobación del
 > administrador, secretos, historial y **paquete de noticias** (leer medios, recurrencia, Outlook).
-> Incluye **editor visual de nodos** (pestaña Grafo). Incluye **programación horaria** (diaria por días, o cada N minutos; menú ⋯ → Programar). Incluye **importador de G1G**, plantilla y validador de plugins. Sigue: publicación en GitHub. Ver `LIMITATIONS.md`.
+> Incluye **editor visual de nodos** (vista Grafo, única vista de edición). Incluye **programación horaria** (diaria por días, o cada N minutos; menú ⋯ → Programar). Incluye **importador de G1G**, plantilla y validador de plugins. Repositorio en GitHub. Ver `LIMITATIONS.md`.
 
 ## Servidor web (equipo en red local)
 

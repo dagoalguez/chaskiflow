@@ -26,18 +26,19 @@ try:
         pg.click("text=+ Nuevo"); pg.fill(".dialog input", "Mi prueba"); pg.keyboard.press("Enter")
         pg.wait_for_selector(".wf-bar")
         for plug in ("hello_world", "export_csv"):
-            pg.select_option(".add-step select", plug); pg.click(".add-step .btn.primary")
-        cards = pg.locator(".card[data-node]")
-        cards.nth(0).locator(".ch").click()           # abre 1
-        cards.nth(1).locator(".ch").click()           # abre 2
+            pg.select_option(".gtools select", plug); pg.wait_for_timeout(250)
+        pg.wait_for_selector(".inspector .card[data-node]")
+        card = pg.locator(".inspector .card[data-node]")
+        card.locator(".deps label.chk", has_text="Holamundo").locator("input").check()
         pg.wait_for_timeout(200)
+        check(pg.locator(".gedge-hit").count() == 1, "dependencia creada desde el inspector")
         # Datos del csv: referencia con chip
-        ta = cards.nth(1).locator("textarea").first
+        ta = card.locator("textarea").first
         ta.click()
-        cards.nth(1).locator("summary", has_text="Insertar referencia").click()
-        cards.nth(1).locator(".chip", has_text="{{Holamundo.result.rows}}").click()
+        card.locator("summary", has_text="Insertar referencia").click()
+        card.locator(".chip", has_text="{{Holamundo.result.rows}}").click()
         check("{{Holamundo.result.rows}}" in ta.input_value(), "chip inserta referencia")
-        cards.nth(1).locator("input[data-ref]").nth(0).fill("%s/ui_out" % srv.tmp)  # output_dir (primer input de texto)
+        card.locator("input[data-ref]").nth(0).fill("%s/ui_out" % srv.tmp)  # output_dir (primer input de texto)
         pg.wait_for_timeout(1700)
         check(pg.inner_text("#savestate") == "Guardado", "autoguardado")
         pg.click("text=Validar"); pg.wait_for_selector(".problems")
@@ -57,7 +58,7 @@ try:
         pg.screenshot(path=OUT + "06_history.png")
         # tema oscuro
         pg.click(".topbar button >> text=⚙"); pg.select_option(".dialog select >> nth=1", "dark"); pg.click(".dialog .x")
-        pg.click(".tab >> text=Pasos"); pg.wait_for_timeout(300)
+        pg.click(".tab >> text=Grafo"); pg.wait_for_timeout(300)
         pg.screenshot(path=OUT + "07_dark.png")
         # admin
         pg.click("text=Plugins"); pg.wait_for_selector(".dialog table"); pg.screenshot(path=OUT + "08_plugins.png"); pg.click(".dialog .x")
@@ -74,7 +75,7 @@ try:
         c = srv.client(); c.post("/api/login", {"username": "admin", "password": "clave-segura-1"})
         wf = c.get("/api/workflows")[1]["workflows"][0]
         c.put("/api/workflows/%d" % wf["id"], {"description": "externo", "version": wf["version"]})
-        pg.locator(".card[data-node]").nth(0).locator("input[data-ref]").first.fill("Otro")
+        pg.locator(".inspector .card[data-node]").locator("input[data-ref]").first.fill("Otro")
         pg.wait_for_selector(".banner.err", timeout=8000); check(True, "conflicto 409 muestra aviso")
         pg.screenshot(path=OUT + "10_conflict.png")
         pg.click(".banner >> text=Recargar"); pg.wait_for_selector(".wf-bar")

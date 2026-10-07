@@ -65,7 +65,7 @@ try:
         sts = pg.eval_on_selector_all(".gnode", "els => els.map(e => e.getAttribute('class'))")
         check(any("st-" in x for x in sts), "estado en vivo pintado en nodos")
         pg.screenshot(path=OUT + "g3_run.png")
-        pg.click(".tab >> text=Pasos"); pg.wait_for_selector(".steps")
+        check(pg.locator(".tab >> text=Pasos").count() == 0, "ya no existe la pestaña Pasos")
         b.close()
 finally:
     srv.stop()

@@ -30,7 +30,7 @@ try:
         pg.screenshot(path=OUT + "imp1_report.png")
         pg.click(".dialog .df >> text=Cerrar")
         pg.wait_for_selector(".wf-bar")
-        check(pg.locator(".card[data-node]").count() >= 6, "workflow abierto con pasos")
+        check(pg.locator(".gnode").count() >= 6, "workflow abierto con nodos en el grafo")
         b.close()
 finally:
     srv.stop()

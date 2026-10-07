@@ -48,7 +48,20 @@ def _attachments(value):
     if value in (None, "", []):
         return []
     if isinstance(value, str):
-        value = [p for p in re.split(r"[;\n]", value)]
+        # varias referencias {{A.result.file_paths}} en líneas distintas llegan como listas JSON dentro del texto
+        found = []
+
+        def _grab(m):
+            try:
+                data = json.loads(m.group(0))
+            except ValueError:
+                return m.group(0)
+            if not isinstance(data, list) or not data or not all(isinstance(x, str) for x in data):
+                return m.group(0)
+            found.extend(data)
+            return "\n"
+        rest = re.sub(r"\[[^\[\]]*\]", _grab, value)
+        value = found + [p for p in re.split(r"[;\n]", rest)]
     out = []
     for v in value:
         if isinstance(v, (list, tuple)):      # listas anidadas (varios pasos de exportación)

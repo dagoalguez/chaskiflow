@@ -126,7 +126,7 @@
   }
 
   // ============================================================ estado
-  var S = { user: null, plugins: [], pmap: {}, workflows: [], current: null, runs: [], tab: "steps", live: null,
+  var S = { user: null, plugins: [], pmap: {}, workflows: [], current: null, runs: [], tab: "graph", live: null,
             collapsed: {}, saveState: "saved", conflict: false, view: null };
   var root = document.getElementById("app");
 
@@ -343,7 +343,7 @@
       var w = d.workflow;
       S.current = { id: w.id, name: w.name, description: w.description, version: w.version, access: w.access, owner_id: w.owner_id,
                     owner: w.owner, team_access: w.team_access, shares: w.shares, def: w.definition, problems: null };
-      S.saveState = "saved"; S.conflict = false; S.tab = "steps"; S.live = null; S.runs = [];
+      S.saveState = "saved"; S.conflict = false; S.tab = "graph"; S.live = null; S.runs = [];
       renderList(); renderMain();
       loadRuns();
     }, function (e) { toast(e.message); });
@@ -403,7 +403,6 @@
       runBtn, stopBtn,
       h("button", { class: "btn", text: "⋯", title: t("details"), onclick: moreMenu }));
     var tabs = h("div", { class: "tabs" },
-      h("button", { class: "tab" + (S.tab === "steps" ? " active" : ""), text: t("steps"), onclick: function () { S.tab = "steps"; renderMain(); } }),
       h("button", { class: "tab" + (S.tab === "graph" ? " active" : ""), text: t("graph"), onclick: function () { S.tab = "graph"; renderMain(); } }),
       h("button", { class: "tab" + (S.tab === "runs" ? " active" : ""), text: t("runs"), onclick: function () { S.tab = "runs"; renderMain(); } }));
     els.editor = h("div", { class: "editor" });
@@ -414,7 +413,7 @@
       els.editor.appendChild(h("div", { class: "banner err" }, h("span", { text: t("conflict") + " " }),
         h("button", { class: "btn sm", text: t("reload"), onclick: function () { openWorkflow(w.id); } })));
     }
-    if (S.tab === "steps") renderSteps(); else if (S.tab === "graph") renderGraph(); else renderHistoryTab();
+    if (S.tab === "runs") renderHistoryTab(); else renderGraph();
     renderRunPane();
     updateSaveState();
     if (S.live && !S.live.done) { setRunning(true); poll(); }
@@ -464,16 +463,9 @@
   }
   function labelOf(n) { return n.label || n.id; }
 
-  function renderSteps() {
-    var ed = els.editor, w = S.current, def = w.def;
-    if (w.problems) {
-      var pb = h("div", { class: "problems" });
-      if (w.problems.valid && !w.problems.warnings.length) pb.appendChild(h("div", { text: "✓ " + t("valid_ok") }));
-      w.problems.errors.forEach(function (m) { pb.appendChild(h("div", { class: "e", text: "✗ " + m })); });
-      w.problems.warnings.forEach(function (m) { pb.appendChild(h("div", { class: "w", text: "! " + m })); });
-      ed.appendChild(pb);
-    }
-    // variables
+  // panel de variables del workflow (se muestra en el inspector cuando no hay nodo seleccionado)
+  function varsPanel() {
+    var def = S.current.def;
     var vars = h("details", { class: "vars card" });
     var vkeys = Object.keys(def.variables || {});
     vars.appendChild(h("summary", { style: "padding:10px 14px;cursor:pointer", text: t("variables") + " (" + vkeys.length + ")" }));
@@ -492,36 +484,9 @@
     if (canEdit()) vbody.appendChild(h("button", { class: "btn sm", style: "margin-top:8px", text: t("add_var"), onclick: function () {
       var k = "var", i = 1; while (k in def.variables) k = "var" + (++i); def.variables[k] = ""; touch(); renderMain(); } }));
     vars.appendChild(vbody);
-    if (vkeys.length) vars.open = !!S.varsOpen;
+    vars.open = S.varsOpen !== false;
     vars.addEventListener("toggle", function () { S.varsOpen = vars.open; });
-    ed.appendChild(vars);
-
-    var steps = h("div", { class: "steps" });
-    if (!def.nodes.length) steps.appendChild(h("div", { class: "muted", style: "text-align:center;padding:20px", text: t("empty_wf") }));
-    def.nodes.forEach(function (n, idx) { steps.appendChild(stepCard(n, idx)); });
-    if (canEdit()) steps.appendChild(addStepBar());
-    ed.appendChild(steps);
-  }
-
-  function addStepBar() {
-    var sel = h("select", { style: "max-width:380px" }, h("option", { value: "", text: t("choose_plugin") }));
-    var cats = {};
-    S.plugins.filter(function (p) { return p.ok && p.status === "enabled"; }).forEach(function (p) { (cats[p.category] = cats[p.category] || []).push(p); });
-    Object.keys(cats).sort().forEach(function (c) {
-      var og = h("optgroup", { label: c });
-      cats[c].forEach(function (p) { og.appendChild(h("option", { value: p.id, text: (p.icon || "") + " " + p.name })); });
-      sel.appendChild(og);
-    });
-    var btn = h("button", { class: "btn primary", onclick: function () {
-      if (!sel.value) return;
-      var p = S.pmap[sel.value], def = S.current.def, id = newNodeId();
-      var node = { id: id, label: uniqueLabel(p.name.replace(/[^\w]+/g, "") || id), type: p.id, config: {}, on_error: "stop", enabled: true };
-      if (def.nodes.length) def.edges.push({ source: def.nodes[def.nodes.length - 1].id, target: id });
-      def.nodes.push(node); S.collapsed[id] = false; touch(); renderMain();
-    } }, t("add_step"));
-    var wrap = h("div", { class: "add-step" }, sel, btn);
-    if (!S.plugins.some(function (p) { return p.ok && p.status === "enabled"; })) wrap.appendChild(h("span", { class: "muted", text: t("none_plugins") }));
-    return wrap;
+    return vars;
   }
 
   function stepCard(n, idx) {
@@ -863,8 +828,18 @@
     sel.addEventListener("change", function () {
       if (!sel.value) return;
       var p = S.pmap[sel.value], id = newNodeId(), r = svg.getBoundingClientRect();
-      var node = { id: id, label: uniqueLabel(p.name.replace(/[^\w]+/g, "") || id), type: p.id, config: {}, on_error: "stop", enabled: true,
-                   position: { x: Math.round((r.width / 2 - G.x) / G.k - NW / 2 + def.nodes.length % 5 * 14), y: Math.round((r.height / 2 - G.y) / G.k - NH / 2 + def.nodes.length % 5 * 14) } };
+      var ref = G.sel && nmap[G.sel] ? nmap[G.sel] : null, pos;
+      if (ref) {   // a la derecha del nodo seleccionado, sin pisar a otros, y conectado a él
+        pos = { x: Math.round(ref.position.x + NW + 70), y: Math.round(ref.position.y) };
+        var busy = function () { return def.nodes.some(function (o) { return Math.abs(o.position.x - pos.x) < NW && Math.abs(o.position.y - pos.y) < NH + 20; }); };
+        while (busy()) pos.y += NH + 30;
+      } else {
+        pos = { x: Math.round((r.width / 2 - G.x) / G.k - NW / 2), y: Math.round((r.height / 2 - G.y) / G.k - NH / 2) };
+        var busy2 = function () { return def.nodes.some(function (o) { return Math.abs(o.position.x - pos.x) < NW && Math.abs(o.position.y - pos.y) < NH + 20; }); };
+        while (busy2()) pos.y += NH + 30;
+      }
+      var node = { id: id, label: uniqueLabel(p.name.replace(/[^\w]+/g, "") || id), type: p.id, config: {}, on_error: "stop", enabled: true, position: pos };
+      if (ref) def.edges.push({ source: ref.id, target: id });
       def.nodes.push(node); G.sel = id; G.selEdge = null; S.collapsed[id] = false; touch(); renderMain();
     });
     var tools = h("div", { class: "gtools" },
@@ -872,7 +847,7 @@
       h("button", { class: "btn sm", text: lang === "es" ? "Ajustar" : "Fit", onclick: fit }),
       edit ? h("button", { class: "btn sm", text: lang === "es" ? "Ordenar" : "Auto-layout", onclick: function () { autoLayout(true); G.fitted = null; touch(); renderMain(); } }) : null,
       edit ? h("button", { class: "btn sm danger", text: t("remove"), disabled: !(G.sel || G.selEdge), onclick: deleteSelection }) : null,
-      h("span", { class: "muted", style: "font-size:12px", text: lang === "es" ? "Arrastre del punto derecho de un nodo al izquierdo de otro para conectar" : "Drag from a node's right dot to another's left dot to connect" }));
+      h("span", { class: "muted", style: "font-size:12px", text: lang === "es" ? "Un paso nuevo se conecta al nodo seleccionado. Arrastre del punto derecho de un nodo al izquierdo de otro para conectar" : "Drag from a node's right dot to another's left dot to connect" }));
 
     var inspector = h("div", { class: "inspector" });
     if (G.sel && nmap[G.sel]) {
@@ -881,6 +856,7 @@
       inspector.appendChild(h("div", { class: "muted", style: "padding:14px", text: (lang === "es" ? "Conexión: " : "Link: ") + labelOf(nmap[G.selEdge.s] || {}) + " → " + labelOf(nmap[G.selEdge.t] || {}) + (lang === "es" ? ". Pulse Suprimir o «Quitar»." : ". Press Delete or Remove.") }));
     } else {
       inspector.appendChild(h("div", { class: "muted", style: "padding:14px", text: lang === "es" ? "Seleccione un nodo para editar sus campos." : "Select a node to edit its fields." }));
+      inspector.appendChild(varsPanel());
     }
     if (w.problems) {
       var pb = h("div", { class: "problems", style: "margin:8px" });
@@ -909,7 +885,7 @@
     flushSave();
     var w = S.current;
     api("POST", "/api/workflows/" + w.id + "/validate", { definition: w.def }).then(function (r) {
-      w.problems = r; if (S.tab === "runs") S.tab = "steps"; renderMain();
+      w.problems = r; if (S.tab === "runs") S.tab = "graph"; renderMain();
     }, function (e) { toast(e.message); });
   }
 
@@ -1032,7 +1008,7 @@
   function openPastRun(id) {
     api("GET", "/api/runs/" + id).then(function (d) {
       S.viewRun = d.run; S.live = null; setRunning(false);
-      if (S.tab === "runs") { S.tab = "steps"; renderMain(); } else renderRunPane();
+      if (S.tab === "runs") { S.tab = "graph"; renderMain(); } else renderRunPane();
     }, function (e) { toast(e.message); });
   }
   function renderPastRun(body, run) {

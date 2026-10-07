@@ -102,12 +102,13 @@
         "data": "{{Consolidar.result.rows}}",
         "output_dir": "{{vars.carpeta}}",
         "filename": "noticias_%Y-%m-%d",
-        "columns": "medio,fecha,titulo,url,ind_relevante,palabras_detectadas,recurrencia,nro_medios,medios,id_recurrencia,contenido",
+        "columns": "medio,fecha,titulo,url,seccion,ind_relevante,palabras_detectadas,recurrencia,nro_medios,medios,id_recurrencia,contenido",
         "rename": {
           "medio": "Medio",
-          "fecha": "Fecha",
+          "fecha": "Fecha publicación",
           "titulo": "Título",
           "url": "URL",
+          "seccion": "Sección",
           "ind_relevante": "Relevante",
           "palabras_detectadas": "Palabras detectadas",
           "recurrencia": "Recurrencia",
@@ -126,7 +127,22 @@
         "data": "{{Consolidar.result.rows}}",
         "output_dir": "{{vars.carpeta}}",
         "filename": "noticias_%Y-%m-%d",
-        "sheet_name": "Noticias"
+        "sheet_name": "Noticias",
+        "columns": "medio,fecha,titulo,url,seccion,ind_relevante,palabras_detectadas,recurrencia,nro_medios,medios,id_recurrencia,contenido",
+        "rename": {
+          "medio": "Medio",
+          "fecha": "Fecha publicación",
+          "titulo": "Título",
+          "url": "URL",
+          "seccion": "Sección",
+          "ind_relevante": "Relevante",
+          "palabras_detectadas": "Palabras detectadas",
+          "recurrencia": "Recurrencia",
+          "nro_medios": "N° medios",
+          "medios": "Medios",
+          "id_recurrencia": "ID recurrencia",
+          "contenido": "Contenido"
+        }
       }
     },
     {
@@ -137,7 +153,7 @@
         "to": "{{vars.destinatarios}}",
         "subject": "Noticias relevantes %Y-%m-%d",
         "body": "Buenos días,\n\nSe adjunta el consolidado de noticias del día.\n\n{{Consolidar.result.resumen_md}}\n\nGenerado automáticamente por ChaskiFlow.",
-        "attachments": "{{Excel.result.file_paths}}",
+        "attachments": "{{Csv.result.file_paths}}\n{{Excel.result.file_paths}}",
         "mode": "display"
       }
     }
@@ -181,6 +197,10 @@
     },
     {
       "source": "n7",
+      "target": "n10"
+    },
+    {
+      "source": "n8",
       "target": "n10"
     }
   ]

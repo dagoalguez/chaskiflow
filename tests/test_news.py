@@ -303,13 +303,17 @@ class PluginTests(unittest.TestCase):
             {"id": "n6", "label": "Csv", "type": "export_csv",
              "config": {"data": "{{Consolidar.result.rows}}", "output_dir": out, "filename": "noticias",
                         "columns": "medio,titulo,recurrencia,nro_medios,medios,ind_relevante"}},
+            {"id": "n8", "label": "Excel", "type": "export_xlsx",
+             "config": {"data": "{{Consolidar.result.rows}}", "output_dir": out, "filename": "noticias"}},
             {"id": "n7", "label": "Correo", "type": "outlook_send",
              "config": {"to": "equipo@ejemplo.org; otra@ejemplo.org", "subject": "Noticias %Y",
-                        "body": "{{Consolidar.result.resumen_md}}", "attachments": "{{Csv.result.file_paths}}",
+                        "body": "{{Consolidar.result.resumen_md}}",
+                        "attachments": "{{Csv.result.file_paths}}\n{{Excel.result.file_paths}}",
                         "dry_run": True}},
         ]
         edges = [{"source": s, "target": "n5"} for s in ("n1", "n2", "n3", "n4")] + \
-                [{"source": "n5", "target": "n6"}, {"source": "n6", "target": "n7"}, {"source": "n5", "target": "n7"}]
+                [{"source": "n5", "target": "n6"}, {"source": "n6", "target": "n7"}, {"source": "n5", "target": "n7"},
+                 {"source": "n5", "target": "n8"}, {"source": "n8", "target": "n7"}]
         res = self.engine.run({"name": "noticias", "nodes": nodes, "edges": edges})
         self.assertEqual(res.status, "partial", {k: v["error"] for k, v in res.nodes.items() if v["error"]})
         self.assertEqual(res.nodes["Roto"]["status"] if "Roto" in res.nodes else res.nodes["n4"]["status"], "error")
@@ -325,10 +329,45 @@ class PluginTests(unittest.TestCase):
         self.assertIn("Medios sin noticias", c["resumen_md"])
         mail = res.nodes["n7"]["result"]
         self.assertTrue(mail["dry_run"] and not mail["sent"])
-        self.assertEqual(len(mail["attachments"]), 1)
-        self.assertTrue(Path(mail["attachments"][0]).is_file())
-        text = Path(mail["attachments"][0]).read_text(encoding="utf-8-sig")
+        self.assertEqual(len(mail["attachments"]), 2)          # CSV y XLSX juntos
+        self.assertEqual(sorted(Path(a).suffix for a in mail["attachments"]), [".csv", ".xlsx"])
+        self.assertTrue(all(Path(a).is_file() for a in mail["attachments"]))
+        csv_path = [a for a in mail["attachments"] if a.endswith(".csv")][0]
+        text = Path(csv_path).read_text(encoding="utf-8-sig")
         self.assertIn("Caen tres por lavado", text)
+
+    def test_example_workflow_is_valid(self):
+        import json
+        ex = json.loads((PLUGINS.parent / "examples" / "noticias_diario.json").read_text(encoding="utf-8"))
+        errors, _ = self.engine.validate(ex)
+        self.assertEqual(errors, [])
+        mail = [n for n in ex["nodes"] if n["type"] == "outlook_send"][0]
+        self.assertIn("Csv.result", mail["config"]["attachments"])
+        self.assertIn("Excel.result", mail["config"]["attachments"])
+
+    def test_example_export_headers_exact(self):
+        """El CSV y el XLSX del ejemplo salen con los encabezados y el orden exactos del archivo original."""
+        import csv, json, re, zipfile
+        expected = ["Medio", "Fecha publicación", "Título", "URL", "Sección", "Relevante", "Palabras detectadas",
+                    "Recurrencia", "N° medios", "Medios", "ID recurrencia", "Contenido"]
+        ex = json.loads((PLUGINS.parent / "examples" / "noticias_diario.json").read_text(encoding="utf-8"))
+        row = {k: "x" for k in ("medio", "fecha", "titulo", "url", "seccion", "ind_relevante", "palabras_detectadas",
+                                "recurrencia", "nro_medios", "medios", "id_recurrencia", "contenido", "extra")}
+        out = str(self.tmp / "hdr")
+        nodes = []
+        for n in ex["nodes"]:
+            if n["type"] in ("export_csv", "export_xlsx"):
+                c = dict(n["config"], data=[row], output_dir=out, filename="h_" + n["type"])
+                nodes.append({"id": n["id"], "label": n["label"], "type": n["type"], "config": c})
+        res = self.engine.run({"name": "h", "nodes": nodes, "edges": []})
+        self.assertEqual(res.status, "ok", {k: v["error"] for k, v in res.nodes.items() if v["error"]})
+        csv_path = [Path(v["result"]["file_path"]) for v in res.nodes.values() if v["result"]["file_path"].endswith(".csv")][0]
+        with open(csv_path, encoding="utf-8-sig", newline="") as f:
+            self.assertEqual(next(csv.reader(f, delimiter=";")), expected)
+        x_path = [v["result"]["file_path"] for v in res.nodes.values() if v["result"]["file_path"].endswith(".xlsx")][0]
+        xml = zipfile.ZipFile(x_path).read("xl/worksheets/sheet1.xml").decode("utf-8")
+        first = xml.split("</row>")[0]
+        self.assertEqual([t for t in re.findall(r"<t[^>]*>([^<]*)</t>", first)], expected)
 
     def test_consolidate_without_inputs_fails_clearly(self):
         w = {"name": "t", "nodes": [{"id": "A", "label": "A", "type": "news_consolidate", "config": {}}], "edges": []}
