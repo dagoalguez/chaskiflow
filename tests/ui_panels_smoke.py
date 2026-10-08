@@ -52,10 +52,11 @@ try:
         pg.click(".gtools .panel-toggle"); pg.wait_for_timeout(150)
         check(pg.eval_on_selector(".sidebar", "e => e.getBoundingClientRect().width") > 200 and shown(pg, ".inspector"), "se vuelven a mostrar")
         # el registro inferior se pliega y se despliega
+        check(pg.locator(".dk-body").count() == 0, "el Registro arranca plegado en el Editor")
         pg.click(".dk-head"); pg.wait_for_timeout(150)
-        check(pg.locator(".dk-body").count() == 0, "pulsar la cabecera del Registro lo pliega")
+        check(pg.locator(".dk-body").count() == 1, "pulsar la cabecera del Registro lo despliega")
         pg.click(".dk-head"); pg.wait_for_timeout(150)
-        check(pg.locator(".dk-body").count() == 1, "pulsar otra vez lo despliega")
+        check(pg.locator(".dk-body").count() == 0, "pulsar otra vez lo pliega")
         # --- plugins
         pg.click("text=Plugins"); pg.wait_for_selector(".dialog table")
         row = pg.locator(".dialog tr", has_text="mi_plugin")

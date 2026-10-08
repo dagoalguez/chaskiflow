@@ -41,7 +41,7 @@ try:
         check(True, "la barra lateral marca «Lento» como en curso")
         pg.click(".wf-item >> text=Rapido"); pg.wait_for_selector(".gsvg")
         check(pg.locator("#runbtn").is_enabled(), "en otro workflow el botón Ejecutar sigue habilitado")
-        pg.click("#runbtn"); until(lambda: pg.locator(".dk-step").count() >= 1)
+        pg.click("#runbtn"); pg.wait_for_selector(".logdock .badge"); pg.click(".dk-head"); until(lambda: pg.locator(".dk-step").count() >= 1)
         check(True, "se puede ejecutar el segundo workflow mientras el primero corre")
         pg.click(".wf-item >> text=Lento"); pg.wait_for_selector(".gsvg")
         until(lambda: pg.locator(".gnode.st-running").count() == 1)

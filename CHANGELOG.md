@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.16.4 — 2026-10-08
+- **El Registro del Editor arranca plegado** (ocupaba espacio del grafo). Si lo despliega, se queda así durante la sesión; ejecutar ya no lo abre solo, pero su cabecera plegada muestra el estado de la corrida y el paso en curso (▶ nombre). En la pestaña Ejecuciones arranca abierto (es su detalle) y se recuerda aparte.
+- Pruebas visuales ajustadas.
+
 ## 0.16.3 — 2026-10-08
 - **«Acerca de ChaskiFlow»** con el mismo formato que quipullm: logo, nombre y versión centrados, descripción, y tabla **Autor / Contribuciones / Licencia / Repositorio** (enlace a github.com/dagoalguez/chaskiflow). `/api/health` devuelve también `repository`.
 

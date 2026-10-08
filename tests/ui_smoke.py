@@ -23,7 +23,7 @@ try:
         pg.goto(srv.base); pg.wait_for_selector("#lg-user")
         pg.fill("#lg-user", "admin"); pg.fill("#lg-pass", "clave-segura-1"); pg.fill("#lg-dn", "Admin")
         pg.click("button[type=submit]"); pg.wait_for_selector(".sidebar")
-        pg.click("text=+ Nuevo"); pg.fill(".dialog input", "Mi prueba"); pg.keyboard.press("Enter")
+        pg.click(".sb-new"); pg.fill(".dialog input", "Mi prueba"); pg.keyboard.press("Enter")
         pg.wait_for_selector(".wf-bar")
         for plug in ("hello_world", "export_csv"):
             pg.click(".gtools >> text=Añadir paso"); pg.fill(".picker input", plug); pg.keyboard.press("Enter"); pg.wait_for_timeout(250)
@@ -43,7 +43,9 @@ try:
         check(pg.inner_text("#savestate") == "Guardado", "autoguardado")
         pg.click("text=Validar"); pg.wait_for_selector(".problems")
         print("validar:", pg.inner_text(".problems").replace("\n", " | "))
+        check(pg.locator(".logdock.closed").count() == 1 and pg.locator(".dk-body").count() == 0, "el Registro del Editor arranca plegado")
         pg.click("#runbtn")
+        pg.wait_for_selector(".logdock .badge", timeout=20000); pg.click(".dk-head")
         pg.wait_for_selector(".dk-step.ok >> nth=1", timeout=20000)
         pg.wait_for_timeout(1200)
         pg.screenshot(path=OUT + "04_run.png")

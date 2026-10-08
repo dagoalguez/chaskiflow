@@ -41,6 +41,7 @@ try:
         pg.click(".gplay >> text=Este paso")           # B sin ejecución previa de A -> explica
         pg.wait_for_selector(".toast"); check("necesita el resultado de: A" in pg.inner_text(".toast"), "mensaje claro si falta el resultado previo: " + pg.inner_text(".toast")[:90])
         pg.click(".gplay >> text=Hasta aquí")           # A y B
+        pg.wait_for_selector(".logdock .badge"); pg.click(".dk-head")
         until(lambda: pg.locator(".dk-step.ok").count() >= 2)
         check(pg.locator(".dk-step.ok").count() == 2 and "Ejecución parcial" in pg.inner_text(".logdock"), "«Hasta aquí» ejecuta A y B")
         until(lambda: pg.locator("#stopbtn.hidden").count() == 1)

@@ -1296,7 +1296,7 @@
       return api("POST", "/api/workflows/" + w.id + "/run", body);
     }).then(function (d) {
       S.live = { id: d.run_id, after: 0, nodes: {}, order: [], status: "queued", done: false, logs: {}, wfname: w.name, started: Date.now(), reused: d.reused || [], partial: !!only };
-      S.selRun = d.run_id; S.dkAuto = true; S.dkSel = null; S.dkOpen = true;
+      S.selRun = d.run_id; S.dkAuto = true; S.dkSel = null;
       setRunning(true); renderRunPane(); poll(); refreshList().catch(function () {}); loadRuns();
     }, function (e) { toast(e.message); });
   }
@@ -1372,7 +1372,11 @@
 
   // ---------------------------------------------------------------- registro (dock) y lista de ejecuciones
   var STEP_ICON = { ok: "✓", error: "✗", partial: "◐", skipped: "↷", cancelled: "■", pending: "·" };
-  S.dkOpen = true; S.dkAuto = true; S.dkSel = null; S.selRun = null;
+  // el Registro del Editor arranca plegado (le quita espacio al grafo); en Ejecuciones arranca abierto. Se recuerda durante la sesión.
+  S.dkOpenEd = false; S.dkOpenRu = true;
+  function dkIsOpen() { return S.tab === "runs" ? S.dkOpenRu : S.dkOpenEd; }
+  function dkSetOpen(v) { if (S.tab === "runs") S.dkOpenRu = v; else S.dkOpenEd = v; }
+  S.dkAuto = true; S.dkSel = null; S.selRun = null;
   // ejecución que pintan el grafo y el registro: en Editor, la última en vivo; en Ejecuciones, la elegida de la lista
   function runSrc() {
     if (S.tab === "runs") {
@@ -1408,7 +1412,7 @@
     for (i = st.length - 1; i >= 0; i--) if (st[i].status !== "pending" && st[i].status !== "skipped") return st[i].id;
     return st[0].id;
   }
-  function pickStep(id) { S.dkSel = id; S.dkAuto = false; S.dkOpen = true; renderRunPane(); }
+  function pickStep(id) { S.dkSel = id; S.dkAuto = false; dkSetOpen(true); renderRunPane(); }
   function stepStatusText(stp, info) {
     var st = stp.status;
     var txt = (st === "pending" && info.partial && (info.done || info.reused.some(function (r) { return r.node === stp.label; }))) ? (lang === "es" ? "Reutilizado" : "Reused") : (t(st) || st);
@@ -1420,12 +1424,13 @@
     var oldDet = dk.querySelector(".dk-detail"), oldList = dk.querySelector(".dk-steps");
     var oldTop = oldDet ? oldDet.scrollTop : 0, oldListTop = oldList ? oldList.scrollTop : 0, sameSel = dk._lastSel === S.dkSel;
     clear(dk);
-    dk.classList.toggle("closed", !S.dkOpen);
+    dk.classList.toggle("closed", !dkIsOpen());
     var info = stepsOf(runSrc());
-    var head = h("div", { class: "dk-head", onclick: function (ev) { if (ev.target.closest && ev.target.closest("button")) return; S.dkOpen = !S.dkOpen; renderDock(); } },
-      h("span", { class: "dk-caret", text: S.dkOpen ? "▾" : "▸" }), h("b", { text: es ? "Registro" : "Log" }),
+    var head = h("div", { class: "dk-head", onclick: function (ev) { if (ev.target.closest && ev.target.closest("button")) return; dkSetOpen(!dkIsOpen()); renderDock(); } },
+      h("span", { class: "dk-caret", text: dkIsOpen() ? "▾" : "▸" }), h("b", { text: es ? "Registro" : "Log" }),
       info ? h("span", { class: "badge " + (info.status === "ok" ? "ok" : info.status === "error" ? "err" : ""), text: t(info.status) || info.status }) : null,
       info ? h("span", { class: "muted", style: "font-size:12px", text: fmtDate(info.started) + (info.duration != null ? " · " + fmtDur(info.duration) : "") }) : null,
+      (info && !info.done) ? h("span", { class: "muted", style: "font-size:12px", text: info.steps.filter(function (x) { return x.status === "running"; }).map(function (x) { return "▶ " + x.label; }).join("  ") }) : null,
       h("span", { style: "flex:1" }));
     var src = runSrc();
     if (info && src.kind === "past") {
@@ -1434,7 +1439,7 @@
         head.appendChild(h("button", { class: "btn sm danger", text: "🗑 " + (es ? "Eliminar esta ejecución" : "Delete this run"), onclick: function () { deleteRun(info.id); } }));
     }
     dk.appendChild(head);
-    if (!S.dkOpen) return;
+    if (!dkIsOpen()) return;
     var body = h("div", { class: "dk-body" }); dk.appendChild(body);
     if (!info) {
       body.appendChild(h("div", { class: "muted dk-empty", text: S.tab === "runs" ? (S.runs.length ? "…" : t("no_runs"))
