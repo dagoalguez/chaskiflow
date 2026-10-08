@@ -44,6 +44,8 @@ class FakeLLM:
                     return self.vision(user)
                 S.users.append(user)
                 S.model_seen = body.get("model")
+                if '"estado"' in user:                          # «Probar conexión»
+                    return self.reply('{"estado": "ok"}')
                 if S.mode == "http500":
                     return self.send(500, {"error": "boom"})
                 if S.mode == "prose_first" and "RESPONDE SOLO" not in user:
@@ -78,6 +80,8 @@ class FakeLLM:
                 S.images = getattr(S, "images", []) + [mime]
                 if S.mode == "http500":
                     return self.send(500, {"error": "boom"})
+                if '"color"' in text:                           # «Probar conexión»: cuadro rojo
+                    return self.reply('{"color": "%s"}' % ("negro" if S.mode == "blind" else "rojo"))
                 if S.mode == "garbage":
                     return self.reply("no sé")
                 if mime == "image/jpeg":

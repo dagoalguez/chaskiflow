@@ -8,7 +8,7 @@ Tipos: string, text, password, number, boolean, select, json, any
 
 import json
 
-FIELD_TYPES = {"string", "text", "password", "number", "boolean", "select", "json", "any"}
+FIELD_TYPES = {"string", "text", "password", "secret", "number", "boolean", "select", "json", "any"}
 _TRUE = {"true", "1", "si", "sí", "yes", "y", "on", "verdadero"}
 _FALSE = {"false", "0", "no", "n", "off", "falso"}
 
@@ -57,7 +57,7 @@ def validate_fields(fields):
 
 def _coerce(field, value):
     t = field.get("type", "string")
-    if t in ("string", "text", "password"):
+    if t in ("string", "text", "password", "secret"):
         if isinstance(value, (dict, list)):
             return json.dumps(value, ensure_ascii=False)
         return str(value)
@@ -109,7 +109,7 @@ def _coerce(field, value):
 def _is_missing(field, value):
     if value is None:
         return True
-    if field.get("type", "string") in ("string", "text", "password", "select") and value == "":
+    if field.get("type", "string") in ("string", "text", "password", "secret", "select") and value == "":
         return True
     return False
 

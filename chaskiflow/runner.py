@@ -20,7 +20,7 @@ sys.path.insert(0, _ROOT)
 
 
 class Secrets:
-    """Acceso a los secretos que el plugin DECLARÓ en plugin.json."""
+    """Acceso a las claves que el plugin DECLARÓ (plugin.json) o que el usuario eligió en un campo de tipo «secret»."""
 
     def __init__(self, declared, values):
         self._declared = set(declared)
@@ -28,13 +28,13 @@ class Secrets:
 
     def get(self, name, default=None):
         if name not in self._declared:
-            raise PermissionError("El plugin no declaró el secreto '%s' en plugin.json" % name)
+            raise PermissionError("El plugin no declaró la clave '%s' en plugin.json" % name)
         return self._values.get(name, default)
 
     def require(self, name):
         v = self.get(name)
         if v in (None, ""):
-            raise RuntimeError("Falta el secreto '%s'. Configúrelo en Secretos." % name)
+            raise RuntimeError("Falta la clave '%s'. Configúrela en Claves." % name)
         return v
 
 
@@ -85,10 +85,12 @@ def main():
     try:
         workdir = req["workdir"]
         os.chdir(workdir)
-        ctx = Context(emit, mask, Secrets(manifest.get("secrets") or [], secret_values),
+        config = req.get("config") or {}
+        declared = list(manifest.get("secrets") or []) + [str(config[fl["key"]]) for fl in (manifest.get("fields") or [])
+                                                          if fl.get("type") == "secret" and config.get(fl["key"])]
+        ctx = Context(emit, mask, Secrets(declared, secret_values),
                       req.get("inputs") or {}, workdir, req.get("run") or {})
         kind = manifest.get("kind", "python")
-        config = req.get("config") or {}
         if kind == "http":
             from chaskiflow.declarative import run_http
             result = run_http(manifest["http"], config, secret_values, ctx.log)

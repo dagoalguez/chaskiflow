@@ -12,7 +12,7 @@ Lista (CSV/TXT) → Rastreo (sin IA) → IA local → CSV + Excel
 ## Antes de ejecutar
 1. Variables del workflow: `archivo_enlaces` (ruta del CSV/TXT), `ia_url` (IP y puerto de quipullm, termina en `/v1`),
    `ia_modelo` (vacío = el primero del servidor), `paginas_por_sitio`, `carpeta`.
-2. Si su servidor de IA usa clave (`api_key` de quipullm), guárdela en **Secretos** con el nombre `quipullm_key`.
+2. Si su servidor de IA usa clave (`api_key` de quipullm), guárdela en **🔑 Claves** con el nombre que prefiera y escriba ese nombre en el campo **Clave** del paso «IA local».
 3. Plugins → apruebe `url_list_read`, `site_locations_crawl` y `llm_structure_addresses`.
 4. Pruebe primero con 2–3 sitios (`limit` en «Lista») y mire el CSV de resumen.
 

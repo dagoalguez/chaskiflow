@@ -6,7 +6,8 @@
     "ia_url": "http://192.168.1.50:1234/v1",
     "ia_modelo": "",
     "paginas_por_sitio": 40,
-    "carpeta": "./salida"
+    "carpeta": "./salida",
+    "ia_clave": ""
   },
   "nodes": [
     {
@@ -46,7 +47,8 @@
         "bloques": "{{Rastreo.result.bloques}}",
         "batch_size": 6,
         "max_items": 400,
-        "fallback": true
+        "fallback": true,
+        "clave": "{{vars.ia_clave}}"
       },
       "on_error": "stop"
     },

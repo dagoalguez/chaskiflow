@@ -279,7 +279,7 @@ class SecretsTests(EngineBase):
 
     def test_missing_secret_gives_clear_error(self):
         r = self.engine(secrets=lambda n: None).run(wf([node("A", "secret_reader")]))
-        self.assertIn("Falta el secreto 'api_token'", r.nodes["A"]["error"])
+        self.assertIn("Falta la clave 'api_token'", r.nodes["A"]["error"])
 
     def test_secret_not_in_recorded_config(self):
         r = self.engine().run(wf([node("A", "secret_reader")]))
@@ -302,7 +302,7 @@ class DeclarativePluginTests(EngineBase):
             r = self.engine(secrets=lambda n: None).run(
                 wf([node("A", "http_decl", {"base": srv.base})]))
         self.assertEqual(r.nodes["A"]["status"], "error")
-        self.assertIn("secreto", r.nodes["A"]["error"])
+        self.assertIn("clave", r.nodes["A"]["error"])
 
 
 if __name__ == "__main__":

@@ -189,16 +189,31 @@ class Llm(Base):
 
     def test_key_is_sent_and_wrong_key_falls_back(self):
         with FakeLLM(key="secreta") as srv:
-            ok = self.ia(srv, secrets={"quipullm_key": "secreta"})
+            ok = self.ia(srv, secrets={"mi_clave_ia": "secreta"}, clave="mi_clave_ia")
             self.assertEqual(ok["status"], "ok", ok["error"])
             self.assertEqual(set(srv.auth), {"Bearer secreta"})
-            bad = self.ia(srv, secrets={"quipullm_key": "otra"})
+            bad = self.ia(srv, secrets={"mi_clave_ia": "otra"}, clave="mi_clave_ia")
             self.assertEqual(bad["status"], "ok")
             self.assertEqual(bad["result"]["total"], 3)                     # conserva los 3 del rastreo
             self.assertTrue(all(x["fuente"] == "rastreo" for x in bad["result"]["rows"]))
-            strict = self.ia(srv, secrets={"quipullm_key": "otra"}, fallback=False)
+            strict = self.ia(srv, secrets={"mi_clave_ia": "otra"}, clave="mi_clave_ia", fallback=False)
             self.assertEqual(strict["status"], "error")
             self.assertIn("rechazó la clave", strict["error"])
+
+    def test_named_key_must_exist_and_probar_conexion_reports_state(self):
+        with FakeLLM(key="secreta") as srv:
+            falta = self.ia(srv, clave="no_existe")
+            self.assertEqual(falta["status"], "error")
+            self.assertIn("No existe la clave «no_existe»", falta["error"])
+            sin = self.ia(srv, modo_prueba=True)                                 # el servidor exige clave y no se eligió ninguna
+            self.assertEqual(sin["status"], "error")
+            self.assertIn("rechazó la clave", sin["error"])
+            ok = self.ia(srv, secrets={"otra": "secreta"}, clave="otra", modo_prueba=True)
+            self.assertEqual(ok["status"], "ok", ok["error"])
+            self.assertTrue(ok["result"]["ok"])
+            self.assertTrue(ok["result"]["clave_enviada"])
+            self.assertEqual(ok["result"]["modelos_disponibles"], ["qwen-fake-7b"])
+            self.assertEqual(self.ia(srv, secrets={"otra": "secreta"}, clave="otra", modo_prueba=True, model="no-esta")["status"], "error")
 
     def test_server_down_falls_back(self):
         r = self.run_node("llm_structure_addresses", {"base_url": "http://127.0.0.1:1/v1", "model": "x", "rows": self.ROWS, "timeout": 10})

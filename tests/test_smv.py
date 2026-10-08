@@ -308,6 +308,24 @@ class Scan(Base):
         self.assertFalse(ok)
         self.assertTrue(m.trozos("hola mundo", 5, 1000)[1])
 
+    def test_probar_conexion_checks_server_key_model_and_vision(self):
+        with FakeLLM(key="k123") as llm:
+            r = self.run_node("pdf_keyword_scan", {"output_dir": self.folder, "base_url": llm.base.replace("/v1", ""), "clave": "mia", "modo_prueba": True},
+                              secrets={"mia": "k123"})
+            self.assertEqual(r["status"], "ok", r["error"])
+            self.assertTrue(r["result"]["ok"] and r["result"]["ve_imagenes"] and r["result"]["clave_enviada"])
+            self.assertEqual(r["result"]["modelo"], "qwen-fake-7b")
+            malo = self.run_node("pdf_keyword_scan", {"output_dir": self.folder, "base_url": llm.base, "modo_prueba": True})   # sin clave
+            self.assertEqual(malo["status"], "error")
+            self.assertIn("rechazó la clave", malo["error"])
+        with FakeLLM(mode="blind") as llm:
+            r = self.run_node("pdf_keyword_scan", {"output_dir": self.folder, "base_url": llm.base, "modo_prueba": True})
+            self.assertFalse(r["result"]["ok"])                                 # conecta pero no ve imágenes
+            self.assertIn("no parece ver imágenes", r["result"]["mensaje"])
+        r = self.run_node("pdf_keyword_scan", {"output_dir": self.folder, "base_url": "http://127.0.0.1:1/v1", "modo_prueba": True})
+        self.assertEqual(r["status"], "error")
+        self.assertIn("No se pudo conectar", r["error"])
+
     def test_dead_ai_server_does_not_abort_text_pdfs(self):
         with FakeLLM(mode="http500") as llm:
             res = self.scan(self.folder, llm)
@@ -350,6 +368,35 @@ class Scan(Base):
         self.assertTrue((Path(out) / "IDENTIFICADOS" / "ALFA ENERGIA S.A.A" / "2022").is_dir())
         self.assertEqual(len(list(Path(out).glob("fusiones_20*.xlsx"))), 1)
         self.assertEqual(len(list(Path(out).glob("descargas_20*.csv"))), 1)
+
+
+
+
+class TestButtonApi(unittest.TestCase):
+    def test_plugin_test_endpoint(self):
+        from tests.apiclient import TestServer
+        srv = TestServer(scheduler_enabled=False)
+        try:
+            c = srv.client()
+            c.post("/api/setup", {"username": "admin", "password": "clave-segura-1"})
+            c.post("/api/plugins/pdf_keyword_scan/enable")
+            cat = {p["id"]: p for p in c.get("/api/plugins")[1]["plugins"]}
+            self.assertEqual(cat["pdf_keyword_scan"]["test"]["label"], "Probar conexión con la IA")
+            self.assertTrue(any(f["type"] == "secret" for f in cat["pdf_keyword_scan"]["fields"]))
+            c.put("/api/secrets/mi_ia", {"value": "k123", "scope": "me"})
+            with FakeLLM(key="k123") as llm:
+                code, d = c.post("/api/plugins/pdf_keyword_scan/test", {
+                    "config": {"base_url": "{{vars.ia_url}}", "clave": "mi_ia", "files": "{{Descarga.result.archivos}}", "output_dir": "{{vars.carpeta}}"},
+                    "variables": {"ia_url": llm.base, "carpeta": "x"}})
+                self.assertEqual(code, 200, d)
+                self.assertTrue(d["ok"], d)
+                self.assertTrue(any("Servidor" in x for x in d["logs"]))
+                code, d = c.post("/api/plugins/pdf_keyword_scan/test", {"config": {"base_url": llm.base}, "variables": {}})
+                self.assertFalse(d["ok"])
+                self.assertIn("rechazó la clave", d["error"])
+            self.assertEqual(c.post("/api/plugins/hello_world/test", {"config": {}})[0], 404)       # sin «test» en plugin.json
+        finally:
+            srv.close() if hasattr(srv, "close") else None
 
 
 if __name__ == "__main__":

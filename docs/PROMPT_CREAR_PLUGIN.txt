@@ -14,8 +14,9 @@ hazme como máximo 3 preguntas cortas ANTES de escribir código. Si no, entrega 
 2. Todos los archivos deben ser SOLO TEXTO UTF-8 (.py .json .md .txt). Nada de binarios.
 3. Español en las etiquetas, ayudas y mensajes de error.
 4. Windows: usa pathlib/os.path, nunca rutas con "/" fijas ni comandos de Linux.
-5. Nunca pongas contraseñas, tokens ni rutas personales dentro del código. Los secretos se declaran
-   en `secrets` y se leen con `ctx.secrets.require("nombre")`.
+5. Nunca pongas contraseñas, tokens ni rutas personales dentro del código. Las claves se declaran
+   en `secrets` (o con un campo `"type": "secret"` para que el usuario elija el nombre) y se leen con
+   `ctx.secrets.require("nombre")`.
 6. Si la tarea es solo llamar a una API web por HTTP, prefiere un plugin declarativo (`"kind": "http"`,
    sin task.py).
 
@@ -32,7 +33,7 @@ hazme como máximo 3 preguntas cortas ANTES de escribir código. Si no, entrega 
   "entry": "task.py",
   "timeout": 60,                // segundos máximos
   "inputs": false,              // true si necesita los resultados de TODOS los pasos anteriores (ctx.inputs)
-  "secrets": [],                // nombres de secretos, p. ej. ["api_token"]
+  "secrets": [],                // nombres de claves fijas, p. ej. ["api_token"]
   "fields": [                   // el formulario que verá quien arma el flujo
     {"key": "texto", "label": "Texto", "type": "string", "required": false,
      "default": "hola", "help": "Ayuda corta"}

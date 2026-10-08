@@ -57,7 +57,7 @@ class LLM:
         except urllib.error.HTTPError as e:
             body = e.read(500).decode("utf-8", "replace")
             if e.code in (401, 403):
-                raise RuntimeError("El servidor rechazó la clave (HTTP %d). Revise el secreto CHASKIFLOW_SECRET_QUIPULLM_KEY" % e.code)
+                raise RuntimeError("El servidor rechazó la clave (HTTP %d). Escriba en el campo «Clave» el nombre de la clave guardada en 🔑 Claves, o revise que sea la correcta" % e.code)
             raise RuntimeError("HTTP %d del servidor de IA: %s" % (e.code, body[:200]))
         except urllib.error.URLError as e:
             raise RuntimeError("No se pudo conectar con el servidor de IA %s (%s). ¿Está encendido y es la IP/puerto correctos?" % (self.base, e.reason))
@@ -141,6 +141,35 @@ def _is_true(v):
     return v is True or str(v).strip().lower() in ("true", "si", "sí", "1", "yes")
 
 
+def probar_conexion(config, ctx, base):
+    """Botón «Probar conexión»: comprueba servidor, clave y modelo con una consulta mínima."""
+    t0 = time.time()
+    clave = (config.get("clave") or "").strip()
+    key = (ctx.secrets.get(clave) or "") if clave else ""
+    llm = LLM(_norm_base(base), (config.get("model") or "").strip(), key, int(config.get("timeout") or 600))
+    ctx.log("Servidor: %s" % llm.base)
+    ctx.log("Clave: " + ("enviada («%s»)" % clave if key else "ninguna"))
+    try:
+        ids = [m.get("id") for m in (llm._req("/models").get("data") or []) if m.get("id")]
+    except RuntimeError as e:
+        if "HTTP 404" in str(e):
+            ids = []
+        else:
+            raise
+    ctx.log("Conexión correcta. Modelos que informa el servidor: %s" % (", ".join(ids[:10]) if ids else "(no los lista)"))
+    llm.pick_model()
+    if (config.get("model") or "").strip() and ids and llm.model not in ids:
+        raise RuntimeError("El servidor responde, pero no tiene el modelo «%s». Disponibles: %s" % (llm.model, ", ".join(ids[:10])))
+    t1 = time.time()
+    ans = llm.chat("Responde únicamente con JSON válido.", 'Responde SOLO con este JSON: {"estado": "ok"}', 40)
+    seg = round(time.time() - t1, 1)
+    ok = "ok" in (ans or "").lower()
+    ctx.log("Respuesta del modelo (%s s): %s" % (seg, re.sub(r"\s+", " ", ans or "")[:120]))
+    return {"ok": ok, "servidor": llm.base, "modelo": llm.model, "modelos_disponibles": ids[:20], "clave_enviada": bool(key),
+            "respuesta_modelo": (ans or "")[:200], "segundos": round(time.time() - t0, 1),
+            "mensaje": "Conexión correcta y el modelo responde" if ok else "Conecta, pero la respuesta del modelo no fue la esperada"}
+
+
 def run(config, ctx):
     base = (config.get("base_url") or "").strip()
     if not re.match(r"^https?://", base):
@@ -150,12 +179,15 @@ def run(config, ctx):
     if not config.get("allow_remote") and not _is_local(host):
         raise RuntimeError("«%s» no es un equipo de la red local. Por seguridad los datos solo se envían a servidores locales; "
                            "si de verdad lo desea, active «Permitir servidores fuera de la red local»" % host)
+    if config.get("modo_prueba"):
+        return probar_conexion(config, ctx, base)
     rows = [r for r in (config.get("rows") or []) if isinstance(r, dict)]
     bloques = [b for b in (config.get("bloques") or []) if isinstance(b, dict)]
     max_items = int(config.get("max_items") or 400)
     if len(rows) > max_items:
         ctx.log("AVISO: %d candidatos; se envían los primeros %d al modelo (resto se conserva sin IA)" % (len(rows), max_items))
-    key = ctx.secrets.get("quipullm_key") or ""
+    clave = (config.get("clave") or "").strip()
+    key = (ctx.secrets.get(clave) or "") if clave else ""
     llm = LLM(base, (config.get("model") or "").strip(), key, int(config.get("timeout") or 600))
     llm.pick_model()
     extra = (config.get("system_prompt") or "").strip()

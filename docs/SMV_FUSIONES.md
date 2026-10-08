@@ -29,7 +29,7 @@ imagen de la página (JPEG, o imagen sin comprimir/Flate) y se le pregunta qué 
 
 1. Cambie las variables: `carpeta`, `empresas` (separadas por punto y coma: parte del nombre o el código del portal; **vacío = todas**, más de 200),
    `anio_desde`, `anio_hasta`, `ia_url` (IP y puerto de quipullm, termina en `/v1`) y `ia_modelo`.
-2. En **Plugins**, apruebe los dos plugins nuevos. Si su servidor de IA usa clave, guárdela en **Secretos** como `quipullm_key`.
+2. En **Plugins**, apruebe los dos plugins nuevos. Si su servidor de IA usa clave, guárdela en **🔑 Claves** con el nombre que prefiera y escriba ese nombre en el campo **Clave** del Escaneo.
 3. Ejecute. Si se corta o se agota el tiempo, vuelva a ejecutar: **no repite** lo descargado ni lo ya revisado.
 
 ## Probar el portal sin el workflow

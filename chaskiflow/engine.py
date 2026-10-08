@@ -17,6 +17,7 @@ Un nodo usa los resultados de otro con {{Etiqueta.result.campo}}; ese otro debe 
 conectado antes (ser antecesor).
 """
 
+import re
 import copy
 import os
 import threading
@@ -319,6 +320,21 @@ class Engine:
                     v = None
                 if v not in (None, ""):
                     secrets[name] = v
+            for f in plugin.fields:                      # campos «Clave»: el usuario elige el nombre de la clave guardada
+                if f.get("type") != "secret":
+                    continue
+                name = str(clean.get(f["key"]) or "").strip()
+                if not name:
+                    continue
+                if not re.fullmatch(r"[A-Za-z0-9_]{1,64}", name):
+                    return finish("error", "Clave «%s»: el nombre solo puede tener letras, números y _" % name)
+                try:
+                    v = self.secrets(name)
+                except Exception:
+                    v = None
+                if v in (None, ""):
+                    return finish("error", "No existe la clave «%s». Créela en 🔑 Claves (o deje el campo «%s» vacío si no se necesita)." % (name, f.get("label") or f["key"]))
+                secrets[name] = v
             inputs = {}
             if plugin.wants_inputs:
                 with lock:

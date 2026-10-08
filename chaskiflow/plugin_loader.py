@@ -73,6 +73,7 @@ class Plugin:
             "outputs": self.outputs,
             "secrets": self.secrets,
             "inputs": self.wants_inputs,
+            "test": self.manifest.get("test") or None,
             "timeout": self.timeout,
             "hash": self.hash,
             "ok": self.ok,

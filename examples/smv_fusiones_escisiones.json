@@ -7,7 +7,8 @@
     "anio_desde": 2021,
     "anio_hasta": 2025,
     "ia_url": "http://192.168.1.50:1234/v1",
-    "ia_modelo": "lfm2.5-vl-1.6b"
+    "ia_modelo": "lfm2.5-vl-1.6b",
+    "ia_clave": ""
   },
   "nodes": [
     {
@@ -43,7 +44,8 @@
         "model": "{{vars.ia_modelo}}",
         "ia_max_paginas": 60,
         "mover": false,
-        "separar_no_leidos": true
+        "separar_no_leidos": true,
+        "clave": "{{vars.ia_clave}}"
       },
       "on_error": "stop",
       "position": {

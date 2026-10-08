@@ -134,7 +134,7 @@ def run_http(spec, config, secrets, log=lambda *a, **k: None):
     try:
         resolved = resolve(plain, scope)
     except TemplateError as e:
-        raise RuntimeError("%s. Si es un secreto, configúrelo en Secretos." % e)
+        raise RuntimeError("%s. Si es una clave, configúrela en Claves." % e)
     result = http_call(resolved, log)
     for name, path in response_map.items():
         try:

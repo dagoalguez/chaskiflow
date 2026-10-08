@@ -123,7 +123,7 @@ class Vision:
         except urllib.error.HTTPError as e:
             body = e.read(300).decode("utf-8", "replace")
             if e.code in (401, 403):
-                raise RuntimeError("El servidor de IA rechazó la clave (HTTP %d). Revise el secreto quipullm_key" % e.code)
+                raise RuntimeError("El servidor de IA rechazó la clave (HTTP %d). Escriba en el campo «Clave» el nombre de la clave guardada en 🔑 Claves, o revise que sea la correcta" % e.code)
             raise RuntimeError("HTTP %d del servidor de IA: %s" % (e.code, body[:160]))
         except urllib.error.URLError as e:
             raise RuntimeError("No se pudo conectar con el servidor de IA %s (%s)" % (self.base, e.reason))
@@ -189,6 +189,54 @@ def vision_terms(vis, terms_txt, mime, data):
         if k:
             found[k] = str(o.get("contexto") or "")[:240]
     return found
+
+
+def _make_vision(config, ctx):
+    """Cliente del servidor de IA a partir de la configuración (URL, modelo y la clave elegida en «Clave»)."""
+    base = (config.get("base_url") or "").strip()
+    if not re.match(r"^https?://", base):
+        raise RuntimeError("La URL del servidor de IA debe empezar con http:// o https://")
+    if not config.get("allow_remote") and not _is_local(urlparse(base).hostname):
+        raise RuntimeError("«%s» no es un equipo de la red local. Por seguridad las páginas solo se envían a servidores locales" % urlparse(base).hostname)
+    clave = (config.get("clave") or "").strip()
+    key = (ctx.secrets.get(clave) or "") if clave else ""
+    vis = Vision(_norm_base(base), (config.get("model") or "").strip(), key, int(config.get("ia_timeout") or 300))
+    vis.clave_enviada = bool(key)
+    vis.pick_model()
+    return vis
+
+
+def probar_conexion(config, ctx):
+    """Botón «Probar conexión»: comprueba servidor, clave, modelo y que el modelo VEA imágenes."""
+    if not (config.get("base_url") or "").strip():
+        raise RuntimeError("Escriba primero la URL del servidor de IA")
+    t0 = time.time()
+    vis = _make_vision(config, ctx)
+    ctx.log("Servidor: %s" % vis.base)
+    ctx.log("Clave: " + ("enviada («%s»)" % config.get("clave") if vis.clave_enviada else "ninguna"))
+    try:
+        ids = [m.get("id") for m in (vis._req("/models").get("data") or []) if m.get("id")]
+    except RuntimeError as e:
+        if "HTTP 404" in str(e):
+            ids = []                                   # algunos servidores no publican /models
+        else:
+            raise
+    ctx.log("Conexión correcta. Modelos que informa el servidor: %s" % (", ".join(ids[:10]) if ids else "(no los lista)"))
+    if (config.get("model") or "").strip() and ids and vis.model not in ids:
+        raise RuntimeError("El servidor responde, pero no tiene el modelo «%s». Disponibles: %s" % (vis.model, ", ".join(ids[:10])))
+    rows = [b"\xff\x00\x00" * 96 for _ in range(96)]
+    png = pdftext._png(96, 96, 8, 2, rows)
+    ctx.log("Enviando una imagen de prueba (un cuadro rojo) al modelo «%s»…" % vis.model)
+    t1 = time.time()
+    ans = vis.ask('La imagen es de un solo color. Responde SOLO con JSON: {"color": "<nombre del color en español>"}', "image/png", png, max_tokens=60)
+    seg = round(time.time() - t1, 1)
+    ve = bool(re.search(r"rojo|red|roja", fold(ans)))
+    ctx.log("Respuesta del modelo (%s s): %s" % (seg, re.sub(r"\s+", " ", ans)[:120]))
+    if not ve:
+        ctx.log("AVISO: el modelo contestó pero NO identificó el color: puede no tener visión (¿falta el archivo mmproj?).")
+    return {"ok": bool(ve), "servidor": vis.base, "modelo": vis.model, "modelos_disponibles": ids[:20],
+            "clave_enviada": vis.clave_enviada, "ve_imagenes": ve, "respuesta_modelo": ans[:200], "segundos": round(time.time() - t0, 1),
+            "mensaje": "Conexión correcta y el modelo ve imágenes" if ve else "Conecta, pero el modelo no parece ver imágenes"}
 
 
 # ----------------------------------------------------------------------------------- utilidades
@@ -353,6 +401,8 @@ def scan_pdf(item, terms, terms_txt, vis, opt, ctx, deadline):
 
 
 def run(config, ctx):
+    if config.get("modo_prueba"):
+        return probar_conexion(config, ctx)
     out_dir = (config.get("output_dir") or "").strip()
     if not out_dir:
         raise RuntimeError("Indique la carpeta de salida")
@@ -374,18 +424,11 @@ def run(config, ctx):
     vis = None
     use_ai = bool(config.get("usar_ia", True))
     if use_ai:
-        base = (config.get("base_url") or "").strip()
-        if base:
-            if not re.match(r"^https?://", base):
-                raise RuntimeError("La URL del servidor de IA debe empezar con http:// o https://")
-            if not config.get("allow_remote") and not _is_local(urlparse(base).hostname):
-                raise RuntimeError("«%s» no es un equipo de la red local. Por seguridad las páginas solo se envían a servidores locales" % urlparse(base).hostname)
-            base = _norm_base(base)
-            vis = Vision(base, (config.get("model") or "").strip(), ctx.secrets.get("quipullm_key") or "", int(config.get("ia_timeout") or 300))
-            vis.pick_model()
-            ctx.log("IA para páginas sin texto: %s en %s" % (vis.model, base))
+        if (config.get("base_url") or "").strip():
+            vis = _make_vision(config, ctx)
+            ctx.log("IA para PDF sin texto: %s en %s" % (vis.model, vis.base))
         else:
-            ctx.log("AVISO: sin URL del servidor de IA; las páginas sin texto (escaneadas) NO se podrán leer")
+            ctx.log("AVISO: sin URL del servidor de IA; los PDF sin texto (escaneados) NO se podrán leer")
     opt = {"min_chars": int(config.get("min_chars") or 25), "ia_max_paginas": int(config.get("ia_max_paginas") or 60),
            "max_pdf_seconds": float(config.get("max_pdf_seconds") or 600),
            "guardar_texto": config.get("guardar_texto") is not False}

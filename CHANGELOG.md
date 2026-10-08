@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.14.0 — 2026-10-07
+- **«Secretos» pasa a llamarse «Claves»** en toda la interfaz y los mensajes (el API sigue en `/api/secrets`).
+- **Nombre de clave a elección:** nuevo tipo de campo `secret`. Los plugins de IA (`pdf_keyword_scan`, `llm_structure_addresses`) ya no exigen una clave con nombre fijo (`quipullm_key`): el campo **Clave** acepta el nombre que usted guardó (con lista desplegable de sus claves). Vacío = el servidor no pide clave. Un nombre que no existe detiene el paso con un mensaje claro.
+- **Botón «Probar conexión con la IA»** en esos plugins (nuevo `"test"` en `plugin.json` y `POST /api/plugins/<id>/test`): comprueba servidor, clave, modelo y que el modelo **vea imágenes** (le envía un cuadro rojo), mostrando el detalle.
+- Los ejemplos traen la variable `ia_clave` (vacía) para escribir el nombre de la clave.
+- **Aviso al actualizar:** si ya tenía guardada `quipullm_key`, escriba ese nombre en el campo «Clave» (o en la variable `ia_clave`).
+
 ## 0.13.6 — 2026-10-07
 - Panel de **Variables**: el valor se muestra **debajo** del nombre (a ancho completo) en vez de al lado, donde quedaba cortado en el panel angosto.
 

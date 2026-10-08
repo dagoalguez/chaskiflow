@@ -249,6 +249,48 @@ def plugin_toggle(req):
     return {"plugins": req.app.gate.catalog(admin=True)}
 
 
+@route("POST", "/api/plugins/(?P<pid>[a-z][a-z0-9_]*)/test", "editor")
+def plugin_test(req):
+    """Botón «Probar conexión»: ejecuta el plugin UNA vez con modo_prueba=true (solo si su plugin.json trae «test»)."""
+    pid = req.params["pid"]
+    plugin = req.app.registry.get(pid) if hasattr(req.app.registry, "get") else None
+    if plugin is None or not getattr(plugin, "manifest", None) or not plugin.manifest.get("test"):
+        raise ApiError(404, "Este plugin no tiene prueba de conexión")
+    b = req.body()
+    given = b.get("config") if isinstance(b.get("config"), dict) else {}
+    variables = b.get("variables") if isinstance(b.get("variables"), dict) else {}
+    cfg = {}
+    for fld in plugin.fields:
+        k = fld["key"]
+        v = given.get(k)
+        if v in (None, ""):
+            continue
+        if isinstance(v, str) and any(root != "vars" for root in re.findall(r"\{\{\s*([A-Za-z0-9_\u00C0-\u024F ]+?)\s*[.}]", v)):
+            continue                                    # referencia a otro paso: no existe en una prueba aislada
+        cfg[k] = v
+    for fld in plugin.fields:                           # campos obligatorios que no importan para la prueba
+        k = fld["key"]
+        if fld.get("required") and k not in cfg:
+            cfg[k] = {"number": 0, "boolean": False, "json": {}, "any": []}.get(fld.get("type", "string"), "-")
+    cfg["modo_prueba"] = True
+    wf = {"name": "Prueba de conexión", "variables": variables,
+          "nodes": [{"id": "prueba", "label": "Prueba", "type": pid, "config": cfg}], "edges": []}
+    engine = req.app.runs.engine_for(req.user["id"])
+    errors, _ = engine.validate(normalize(dict(wf)))
+    if errors:
+        return {"ok": False, "error": "; ".join(errors), "logs": [], "result": None}
+    try:
+        res = engine.run(wf)
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e), "logs": [], "result": None}
+    rec = res.nodes["prueba"]
+    result = rec.get("result") if isinstance(rec.get("result"), dict) else None
+    logs = [str(x.get("message", "")) for x in (rec.get("logs") or []) if isinstance(x, dict) and x.get("message")]
+    ok = rec["status"] == "ok" and (result is None or result.get("ok") is not False)
+    return {"ok": ok, "error": rec.get("error") or "", "logs": logs, "result": result,
+            "message": (result or {}).get("mensaje") or ("Prueba correcta" if ok else "")}
+
+
 def _padm(req, fn, *a, **kw):
     if not req.app.cfg.get("allow_plugin_edit", True):
         raise ApiError(403, "La edición de plugins desde la web está desactivada (allow_plugin_edit en config.json)")
@@ -682,7 +724,7 @@ def wf_runs_clear(req):
     return {"deleted": len(ids)}
 
 
-# ======================================================================== secretos
+# ======================================================================== claves (secretos)
 @route("GET", "/api/secrets")
 def secrets_list(req):
     rows = req.db.all("SELECT name, owner_id, updated_at, created_at FROM secrets "
@@ -699,12 +741,12 @@ def secrets_put(req):
     b = req.body()
     value = b.get("value")
     if not isinstance(value, str) or value == "" or len(value) > 10000:
-        raise ApiError(400, "Falta el valor del secreto")
+        raise ApiError(400, "Falta el valor de la clave")
     scope = b.get("scope", "me")
     if scope not in ("me", "global"):
         raise ApiError(400, "scope debe ser 'me' o 'global'")
     if scope == "global" and req.user["role"] != "admin":
-        raise ApiError(403, "Solo un administrador puede definir secretos globales")
+        raise ApiError(403, "Solo un administrador puede definir claves globales")
     owner = req.user["id"] if scope == "me" else None
     now = now_iso()
     existing = req.db.one("SELECT id FROM secrets WHERE COALESCE(owner_id,0)=COALESCE(?,0) AND name=?",
@@ -723,12 +765,12 @@ def secrets_put(req):
 def secrets_delete(req):
     scope = req.qstr("scope", "me")
     if scope == "global" and req.user["role"] != "admin":
-        raise ApiError(403, "Solo un administrador puede borrar secretos globales")
+        raise ApiError(403, "Solo un administrador puede borrar claves globales")
     owner = req.user["id"] if scope == "me" else None
     cur = req.db.run("DELETE FROM secrets WHERE COALESCE(owner_id,0)=COALESCE(?,0) AND name=?",
                      (owner, req.params["name"]))
     if cur.rowcount == 0:
-        raise ApiError(404, "Secreto no encontrado")
+        raise ApiError(404, "Clave no encontrada")
     req.db.audit(req.user, "secret.delete", "%s (%s)" % (req.params["name"], scope))
     return {"ok": True}
 

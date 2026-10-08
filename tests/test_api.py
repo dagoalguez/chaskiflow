@@ -587,7 +587,7 @@ class SecretTests(unittest.TestCase):
         wid = mk_wf(ANA, "secreto", n("A", "secret_reader"))
         run, _ = run_and_wait(ANA, wid)
         self.assertEqual(run["status"], "error")
-        self.assertIn("Falta el secreto 'api_token'", run["nodes"][0]["error"])
+        self.assertIn("Falta la clave 'api_token'", run["nodes"][0]["error"])
         self.assertEqual(ANA.put("/api/secrets/api_token", {"value": "valor-privado-ana", "scope": "global"})[0], 403)
         self.assertEqual(ADMIN.put("/api/secrets/api_token", {"value": "global-123456", "scope": "global"})[0], 200)
         run, _ = run_and_wait(ANA, wid)

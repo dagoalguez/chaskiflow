@@ -10,7 +10,7 @@ quiera una tarea nueva solo agrega una carpeta a `plugins/`, sin tocar el núcle
 **Solo librería estándar de Python.** Sin pip, sin npm, sin binarios, sin servicios.
 
 > Estado: **v0.6.2** — servidor web multiusuario por LAN, interfaz, plugins con aprobación del
-> administrador, secretos, historial y **paquete de noticias** (leer medios, recurrencia, Outlook).
+> administrador, claves, historial y **paquete de noticias** (leer medios, recurrencia, Outlook).
 > Incluye **editor visual de nodos** (vista Grafo, única vista de edición). Incluye **programación horaria** (diaria por días, o cada N minutos; menú ⋯ → Programar). Incluye **importador de G1G**, plantilla y validador de plugins. Ejecución parcial desde el grafo (este paso / hasta aquí / desde aquí). Repositorio en GitHub. Ver `LIMITATIONS.md`.
 
 ## Servidor web (equipo en red local)
@@ -27,7 +27,7 @@ Si otros equipos no entran, permita el puerto 8000 en el Firewall de Windows. Aj
 - **Roles**: admin (todo, instala/aprueba plugins), editor (crea y ejecuta), viewer (solo ve).
 - **Compartir**: cada workflow tiene dueño; acceso por persona o por todo el equipo (ver / ejecutar / editar).
 - **Plugins**: solo el admin los habilita; si el código de un plugin cambia en disco, queda bloqueado hasta reaprobarlo.
-- **Secretos**: propios o globales (admin); los pasos los usan con `{{secret.nombre}}` y se enmascaran en los registros.
+- **Claves** (antes «secretos»): propias o globales (admin); los pasos los usan con `{{secret.nombre}}` y se enmascaran en los registros.
 - **Programación**: el servidor mismo dispara las ejecuciones (hora de esa PC, permisos de quien la crea). La PC debe estar encendida y sin suspensión; si estaba apagada a la hora, esa ejecución se omite.
 - **Guardado automático**, papelera con deshacer, aviso si dos personas editan a la vez, ES/EN, claro/oscuro.
 

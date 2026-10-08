@@ -21,18 +21,18 @@
       refs: "Insertar referencia", advanced: "Opciones avanzadas", variables: "Variables", add_var: "+ Variable",
       valid_ok: "El workflow es válido.", errors: "Errores", warnings: "Avisos", readonly: "Solo lectura",
       invalid_json: "JSON inválido", required: "obligatorio", plugins: "Plugins", users: "Usuarios", audit: "Auditoría",
-      secrets: "Secretos", settings: "Ajustes", close: "Cerrar", save: "Guardar", cancel: "Cancelar",
+      secrets: "Claves", settings: "Ajustes", close: "Cerrar", save: "Guardar", cancel: "Cancelar",
       status: "Estado", enable: "Habilitar", disable: "Deshabilitar", reload_plugins: "Releer carpeta",
       approve: "Aprobar", name: "Nombre", role: "Rol", active: "Activo", new_user: "Nuevo usuario",
       reset_pw: "Cambiar contraseña", value: "Valor", scope: "Alcance", mine: "Mío", global: "Global",
-      add_secret: "Guardar secreto", team_access: "Acceso del equipo", none: "Ninguno", view: "Ver", run_: "Ejecutar",
+      add_secret: "Guardar clave", team_access: "Acceso del equipo", none: "Ninguno", view: "Ver", run_: "Ejecutar",
       edit: "Editar", change_pw: "Debe cambiar su contraseña", new_pw: "Nueva contraseña", current_pw: "Contraseña actual",
       queued: "En cola…", running: "Ejecutando", ok: "OK", error: "Error", partial: "Parcial", cancelled: "Cancelado",
       skipped: "Omitido", pending: "Pendiente", no_runs: "Sin ejecuciones todavía.", result: "Resultado",
       language: "Idioma", theme: "Tema", dark: "Oscuro", light: "Claro", empty_wf: "Este workflow no tiene pasos. Añada el primero.",
       confirm_del: "¿Enviar a la papelera?", run_started: "Ejecución iniciada", history: "Historial", by: "por",
       none_plugins: "No hay plugins habilitados. Pida al administrador que los habilite.", rename: "Renombrar",
-      sec_hint: "Los secretos se guardan en la base de datos del servidor y nunca se muestran de nuevo.",
+      sec_hint: "Las claves (API keys, tokens) se guardan en la base de datos del servidor y nunca se muestran de nuevo. Use el nombre que quiera; luego escríbalo en el campo «Clave» del paso.",
       pw_min: "Mínimo 8 caracteres", must_change: "Cambiar al entrar", copy: "Copiar", details: "Detalles", server_error: "No se pudo conectar con el servidor"
     },
     en: {
@@ -721,13 +721,16 @@
       // campos
       var fields = h("div");
       var adv = h("details", { style: "margin-top:10px" }, h("summary", { class: "muted", style: "cursor:pointer", text: t("advanced") }));
-      var advCount = 0;
+      var advCount = 0, testPlaced = false;
       if (p) {
         (p.fields || []).forEach(function (f) {
+          if (f.hidden) return;
           var fe = fieldEditor(n, f, edit);
           if (f.advanced) { adv.appendChild(fe); advCount++; } else fields.appendChild(fe);
+          if (p.test && edit && f.key === (p.test.after || "model") && !f.advanced) { fields.appendChild(testBox(n, p)); testPlaced = true; }
         });
         body.appendChild(fields);
+        if (p.test && edit && !testPlaced) body.appendChild(testBox(n, p));
         if (advCount) body.appendChild(adv);
         (p.secrets || []).length && body.appendChild(h("div", { class: "muted", style: "margin-top:8px;font-size:12px", text: "🔑 " + t("secrets") + ": " +
           p.secrets.map(function (s) { return typeof s === "string" ? s : s.name; }).join(", ") }));
@@ -807,6 +810,27 @@
   }
 
   // ---------------------------------------------------------------- campos generados
+  // botón «Probar conexión» de los plugins que declaran "test" en plugin.json
+  function testBox(n, p) {
+    var out = h("div", { class: "testout hidden" });
+    var btn = h("button", { class: "btn sm", text: "🔌 " + ((p.test && p.test.label) || "Probar conexión") });
+    btn.addEventListener("click", function () {
+      btn.disabled = true; btn.textContent = "⏳ Probando…";
+      out.className = "testout"; out.textContent = "";
+      api("POST", "/api/plugins/" + encodeURIComponent(p.id) + "/test", { config: n.config, variables: S.current.def.variables || {} }).then(function (d) {
+        btn.disabled = false; btn.textContent = "🔌 " + ((p.test && p.test.label) || "Probar conexión");
+        out.className = "testout " + (d.ok ? "ok" : "bad");
+        out.appendChild(h("div", { class: "tt", text: (d.ok ? "✔ " : "✖ ") + (d.ok ? (d.message || "Prueba correcta") : (d.error || d.message || "La prueba falló")) }));
+        if (d.logs && d.logs.length) out.appendChild(h("pre", { text: d.logs.join("\n") }));
+        if (out.scrollIntoView) out.scrollIntoView({ block: "nearest" });
+      }, function (e) {
+        btn.disabled = false; btn.textContent = "🔌 " + ((p.test && p.test.label) || "Probar conexión");
+        out.className = "testout bad"; out.appendChild(h("div", { class: "tt", text: "✖ " + e.message }));
+      });
+    });
+    return h("div", { class: "testbox" }, btn, out);
+  }
+
   function fieldEditor(n, f, edit) {
     var key = f.key, cfg = n.config, type = f.type || "string";
     var has = Object.prototype.hasOwnProperty.call(cfg, key);
@@ -844,6 +868,16 @@
         if (v === "") { setVal(null, true); return; }
         setVal(v !== "" && !isNaN(Number(v)) && !/\{\{/.test(v) ? Number(v) : v);
       });
+    } else if (type === "secret") {
+      var listId = "sec-" + n.id + "-" + key;
+      var dl = h("datalist", { id: listId });
+      input = h("input", { type: "text", value: cur === undefined || cur === null ? "" : String(cur), disabled: !edit, "data-ref": "1",
+        placeholder: f.placeholder || "nombre de la clave (opcional)", autocomplete: "off", list: listId });
+      input.addEventListener("input", function () { if (input.value === "") setVal(null, true); else setVal(input.value); });
+      api("GET", "/api/secrets").then(function (d) { (d.secrets || []).forEach(function (s) { dl.appendChild(h("option", { value: s.name })); }); }, function () {});
+      return h("div", { class: "field" },
+        h("div", { class: "fl" }, h("span", { text: "🔑 " + (f.label || key) })), input, dl,
+        f.help ? h("div", { class: "help", text: f.help }) : null);
     } else {
       input = h("input", { type: type === "password" ? "password" : "text", value: cur === undefined || cur === null ? "" : String(cur),
         disabled: !edit, "data-ref": "1", placeholder: f.placeholder || "", autocomplete: "off" });
@@ -1679,7 +1713,7 @@
       });
       body.appendChild(h("table", null, h("thead", null, h("tr", null, h("th", { text: t("name") }), h("th", { text: t("scope") }), h("th", { text: "" }), h("th"))), tb));
       if (S.user.role === "viewer") return;
-      var nm = h("input", { type: "text", placeholder: "nombre_secreto" }), val = h("input", { type: "password", placeholder: t("value"), autocomplete: "off" });
+      var nm = h("input", { type: "text", placeholder: "nombre_de_la_clave" }), val = h("input", { type: "password", placeholder: t("value"), autocomplete: "off" });
       var sc = h("select", { style: "width:auto" }, h("option", { value: "me", text: t("mine") }), S.user.role === "admin" ? h("option", { value: "global", text: t("global") }) : null);
       body.appendChild(h("div", { style: "display:grid;grid-template-columns:1fr 1fr auto auto;gap:6px;margin-top:14px" }, nm, val, sc,
         h("button", { class: "btn primary", text: t("add_secret"), onclick: function () {

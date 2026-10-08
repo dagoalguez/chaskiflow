@@ -25,7 +25,8 @@ con sus errores y no se puede usar; nunca rompe el sistema.
 | `entry` | no | archivo con `run()`; por defecto `task.py` |
 | `fields` | no | campos del formulario (ver abajo) |
 | `outputs` | no | qué devuelve (documentación para la interfaz y para quien arma el flujo) |
-| `secrets` | no | nombres de secretos que el plugin necesita (ver "Secretos") |
+| `secrets` | no | nombres de claves fijas que el plugin necesita (ver "Claves") |
+| `test` | no | `{"label": "Probar conexión"}`: muestra un botón que ejecuta el plugin con `modo_prueba` (ver "Probar conexión") |
 | `inputs` | no | `true` si necesita los resultados de los nodos anteriores (ver "Entradas") |
 | `requires` | no | módulos Python que necesita (`["requests"]`). El sistema solo **avisa** si faltan |
 | `timeout` | no | segundos máximos (por defecto 300). Pasado ese tiempo el proceso se termina |
@@ -96,11 +97,17 @@ Claves del bloque `http`: `method`, `url`, `query`, `headers`, `json`, `body`, `
 `text`, `json` y `elapsed_ms`; `response_map` agrega campos extra a partir de rutas dentro de
 esa respuesta. (El ejemplo es ilustrativo; no está probado contra la API real.)
 
-## Secretos
+## Claves
 
-Los secretos (claves de API, tokens) **no** viajan dentro del JSON del workflow, así se pueden
+Las claves (API keys, tokens; en la interfaz: 🔑 **Claves**) **no** viajan dentro del JSON del workflow, así se pueden
 compartir workflows sin filtrar credenciales. El plugin debe declararlos en `secrets`; solo
 esos nombres llegan a su proceso. `ctx.secrets.get(nombre)` o `ctx.secrets.require(nombre)`.
+
+**Nombre de clave elegido por el usuario:** en vez de fijar el nombre, el plugin puede tener un campo de tipo `"secret"` (`{"key": "clave", "label": "Clave", "type": "secret"}`). El usuario escribe (o elige de una lista) el nombre de la clave guardada y el plugin la lee con `ctx.secrets.get(config.get("clave"))`. Vacío = sin clave; un nombre que no existe en Claves detiene el paso con un mensaje claro.
+
+## Probar conexión
+
+Si `plugin.json` trae `"test": {"label": "Probar conexión"}`, el inspector del paso muestra ese botón. Ejecuta el plugin una sola vez con `config["modo_prueba"] = true` (declare ese campo como `boolean`, `hidden: true`) y las variables del workflow. En ese modo `run()` solo verifica (conexión, clave, modelo) y devuelve un resumen; si algo falla, lanza `RuntimeError` con el motivo.
 Los valores se enmascaran (`***`) en logs y mensajes de error.
 En esta versión el valor sale de la variable de entorno `CHASKIFLOW_SECRET_<NOMBRE>`; el almacén
 por usuario llega con la V1.
