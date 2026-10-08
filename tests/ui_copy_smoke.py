@@ -32,7 +32,7 @@ try:
     def wf(i): return c.get("/api/workflows/%d" % i)[1]["workflow"]["definition"]
     with sync_playwright() as p:
         b = p.chromium.launch(**({"executable_path": os.environ["CHROMIUM_PATH"]} if os.environ.get("CHROMIUM_PATH") else {}))
-        pg = b.new_context(locale="es-PE", viewport={"width": 1400, "height": 850}).new_page()
+        pg = b.new_context(locale="es-PE", viewport={"width": 1400, "height": 1050}).new_page()
         pg.on("console", lambda m: problems.append("console: " + m.text) if m.type in ("error", "warning") and "401" not in m.text else None)
         pg.on("pageerror", lambda e: problems.append("pageerror: " + str(e)))
         pg.goto(srv.base); pg.fill("#lg-user", "admin"); pg.fill("#lg-pass", "clave-segura-1"); pg.click("button[type=submit]")

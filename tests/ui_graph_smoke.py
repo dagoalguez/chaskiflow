@@ -19,12 +19,12 @@ try:
     wid = c.post("/api/workflows/import", {"name": d["name"], "definition": d})[1]["workflow"]["id"]
     with sync_playwright() as p:
         b = p.chromium.launch(**({"executable_path": os.environ["CHROMIUM_PATH"]} if os.environ.get("CHROMIUM_PATH") else {}))
-        pg = b.new_context(locale="es-PE", viewport={"width": 1500, "height": 850}).new_page()
+        pg = b.new_context(locale="es-PE", viewport={"width": 1500, "height": 1050}).new_page()
         pg.on("console", lambda m: problems.append("console: " + m.text) if m.type in ("error", "warning") and "401" not in m.text else None)
         pg.on("pageerror", lambda e: problems.append("pageerror: " + str(e)))
         pg.goto(srv.base); pg.fill("#lg-user", "admin"); pg.fill("#lg-pass", "clave-segura-1"); pg.click("button[type=submit]")
         pg.wait_for_selector(".wf-item"); pg.click(".wf-item")
-        pg.click(".tab >> text=Grafo"); pg.wait_for_selector(".gnode")
+        pg.click(".tab >> text=Editor"); pg.wait_for_selector(".gnode")
         pg.wait_for_timeout(500)
         check(pg.locator(".gnode").count() == 10, "10 nodos dibujados")
         check(pg.locator(".gedge").count() == 10 + 0 or pg.locator(".gedge").count() >= 10, "aristas dibujadas: %d" % pg.locator(".gedge").count())
@@ -35,7 +35,7 @@ try:
         pg.screenshot(path=OUT + "g2_select.png")
         # mover nodo
         box = pg.locator(".gnode").nth(0).locator(".gbox").bounding_box()
-        pg.mouse.move(box["x"] + 60, box["y"] + 20); pg.mouse.down(); pg.mouse.move(box["x"] + 60, box["y"] - 110, steps=5); pg.mouse.up()
+        pg.mouse.move(box["x"] + 60, box["y"] + 20); pg.mouse.down(); pg.mouse.move(box["x"] + 60, box["y"] - 40, steps=5); pg.mouse.up()
         pg.wait_for_timeout(1800)
         s, w = c.get("/api/workflows/%d" % wid)
         n1 = next(n for n in w["workflow"]["definition"]["nodes"] if n["id"] == "n1")
@@ -57,7 +57,7 @@ try:
         # borrar arista seleccionada
         n_edges = pg.locator(".gedge-hit").count()
         pg.locator(".gedge-hit").last.dispatch_event("click")
-        pg.wait_for_selector(".gedge.sel")
+        pg.wait_for_selector(".gedge.sel", state="attached")
         pg.click(".gtools >> text=Quitar"); pg.wait_for_timeout(1900)
         check(pg.locator(".gedge-hit").count() == n_edges - 1, "arista borrada")
         # ejecutar: colorea nodos (falla de red esperada en medios -> continue)

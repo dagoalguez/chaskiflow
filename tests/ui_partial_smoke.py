@@ -41,13 +41,13 @@ try:
         pg.click(".gplay >> text=Este paso")           # B sin ejecución previa de A -> explica
         pg.wait_for_selector(".toast"); check("necesita el resultado de: A" in pg.inner_text(".toast"), "mensaje claro si falta el resultado previo: " + pg.inner_text(".toast")[:90])
         pg.click(".gplay >> text=Hasta aquí")           # A y B
-        until(lambda: pg.locator(".rp-body .msg.ok").count() >= 2)
-        check(pg.locator(".rp-body .msg.ok").count() == 2 and "Ejecución parcial" in pg.inner_text(".rp-body"), "«Hasta aquí» ejecuta A y B")
+        until(lambda: pg.locator(".dk-step.ok").count() >= 2)
+        check(pg.locator(".dk-step.ok").count() == 2 and "Ejecución parcial" in pg.inner_text(".logdock"), "«Hasta aquí» ejecuta A y B")
         until(lambda: pg.locator("#stopbtn.hidden").count() == 1)
         pg.locator(".gnode").nth(2).click(); pg.wait_for_selector(".gplay")
         pg.click(".gplay >> text=Este paso")            # C reutiliza B
-        until(lambda: "Reutiliza el resultado de B" in pg.inner_text(".rp-body"))
-        until(lambda: pg.locator(".rp-body .msg.ok").count() >= 1)
+        until(lambda: "Reutiliza el resultado de B" in pg.inner_text(".logdock"))
+        until(lambda: pg.locator(".dk-step.ok").count() >= 1)
         check(True, "«Este paso» reutiliza el resultado anterior")
         pg.screenshot(path=OUT + "pp1.png")
         until(lambda: pg.locator("#stopbtn.hidden").count() == 1)

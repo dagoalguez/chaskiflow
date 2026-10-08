@@ -13,7 +13,7 @@
       create: "Crear", logout: "Salir", new_wf: "+ Nuevo", wf_new_name: "Nuevo workflow", no_wf: "Aún no hay workflows.",
       pick_wf: "Elija o cree un workflow", pick_hint: "Un workflow es una cadena de pasos (plugins) que se ejecutan en orden.",
       trash: "Papelera", restore: "Restaurar", deleted: "Workflow eliminado", undo: "Deshacer", import_: "Importar", import_report: "Informe de importación (formato G1G)",
-      steps: "Pasos", graph: "Grafo", runs: "Ejecuciones", run: "▶ Ejecutar", stop: "■ Parar", validate: "Validar", share: "Compartir",
+      steps: "Pasos", graph: "Editor", runs: "Ejecuciones", run: "▶ Ejecutar", stop: "■ Parar", validate: "Validar", share: "Compartir",
       export_: "Exportar", duplicate: "Duplicar", saved: "Guardado", saving: "Guardando…", unsaved: "Cambios sin guardar",
       conflict: "Otra persona modificó este workflow. Recargue para continuar.", reload: "Recargar",
       add_step: "Añadir paso", choose_plugin: "Elija un plugin…", label: "Nombre del paso", depends: "Depende de",
@@ -44,7 +44,7 @@
       create: "Create", logout: "Sign out", new_wf: "+ New", wf_new_name: "New workflow", no_wf: "No workflows yet.",
       pick_wf: "Pick or create a workflow", pick_hint: "A workflow is a chain of steps (plugins) run in order.",
       trash: "Trash", restore: "Restore", deleted: "Workflow deleted", undo: "Undo", import_: "Import", import_report: "Import report (G1G format)",
-      steps: "Steps", graph: "Graph", runs: "Runs", run: "▶ Run", stop: "■ Stop", validate: "Validate", share: "Share",
+      steps: "Steps", graph: "Editor", runs: "Runs", run: "▶ Run", stop: "■ Stop", validate: "Validate", share: "Share",
       export_: "Export", duplicate: "Duplicate", saved: "Saved", saving: "Saving…", unsaved: "Unsaved changes",
       conflict: "Someone else changed this workflow. Reload to continue.", reload: "Reload",
       add_step: "Add step", choose_plugin: "Choose a plugin…", label: "Step name", depends: "Depends on",
@@ -232,7 +232,7 @@
 
 
   // ---- paneles que se ocultan con ☰ (se recuerdan en este navegador)
-  var PANELS = { sb: "cf_hide_sb", rp: "cf_hide_rp", insp: "cf_hide_insp" };
+  var PANELS = { sb: "cf_hide_sb", insp: "cf_hide_insp" };
   function panelHidden(k) { try { return localStorage.getItem(PANELS[k]) === "1"; } catch (e) { return !!S["hide_" + k]; } }
   function setPanelHidden(k, v) {
     S["hide_" + k] = v; try { localStorage.setItem(PANELS[k], v ? "1" : "0"); } catch (e) { /* sin almacenamiento */ }
@@ -433,23 +433,23 @@
       var w = d.workflow;
       S.current = { id: w.id, name: w.name, description: w.description, version: w.version, access: w.access, owner_id: w.owner_id,
                     owner: w.owner, team_access: w.team_access, shares: w.shares, def: w.definition, problems: null };
-      S.saveState = "saved"; S.conflict = false; S.tab = "graph"; S.live = null; S.viewRun = null; S.runs = [];
+      S.saveState = "saved"; S.conflict = false; S.tab = "graph"; S.live = null; S.viewRun = null; S.runs = []; S.selRun = null; S.dkSel = null; S.dkAuto = true;
       renderList(); renderMain();
       loadRuns();
     }, function (e) { toast(e.message); });
   }
   function closeWorkflow() {
     flushSave(); stopPolling();
-    S.current = null; S.live = null; S.viewRun = null; S.runs = []; S.conflict = false;
+    S.current = null; S.live = null; S.viewRun = null; S.runs = []; S.selRun = null; S.conflict = false;
     document.title = "ChaskiFlow";
     renderList(); renderMain();
   }
-  // estado de un paso para pintar el grafo: ejecución en vivo o, si se abrió una del historial, esa ejecución
+  // estado de un paso para pintar el grafo: en Editor, la ejecución en vivo; en Ejecuciones, la ejecución elegida de la lista
   function runStatusOf(id) {
-    if (S.live) return S.live.nodes[id] ? S.live.nodes[id].status : "";
-    if (S.viewRun && S.viewRun.nodes) {
-      for (var i = 0; i < S.viewRun.nodes.length; i++) if (S.viewRun.nodes[i].node_id === id) return S.viewRun.nodes[i].status || "";
-    }
+    var src = runSrc(); if (!src) return "";
+    if (src.kind === "live") return src.L.nodes[id] ? src.L.nodes[id].status : "";
+    var ns = src.run.nodes || [];
+    for (var i = 0; i < ns.length; i++) if (ns[i].node_id === id) return ns[i].status || "";
     return "";
   }
   function canEdit() { return S.current && S.current.access === "edit" && S.user.role !== "viewer"; }
@@ -512,17 +512,22 @@
     var tabs = h("div", { class: "tabs" },
       h("button", { class: "tab" + (S.tab === "graph" ? " active" : ""), text: t("graph"), onclick: function () { S.tab = "graph"; renderMain(); } }),
       h("button", { class: "tab" + (S.tab === "runs" ? " active" : ""), text: t("runs"), onclick: function () { S.tab = "runs"; renderMain(); } }),
-      h("span", { class: "grow", style: "flex:1" }),
-      S.tab === "runs" ? null : panelBtn("rp", lang === "es" ? "Mostrar u ocultar el panel de ejecuciones" : "Show or hide the runs panel", "☰ " + t("runs")));
+      h("span", { class: "grow", style: "flex:1" }));
     els.editor = h("div", { class: "editor" });
-    els.runpane = h("div", { class: "runpane" });
+    els.dock = h("div", { class: "logdock" });
     els.main.appendChild(bar); els.main.appendChild(tabs);
-    els.main.appendChild(h("div", { class: "content" }, els.editor, els.runpane));
+    if (S.tab === "runs") {
+      els.runlist = h("div", { class: "runlist" });
+      els.main.appendChild(h("div", { class: "content runsview" }, els.runlist, h("div", { class: "runright" }, els.editor, els.dock)));
+    } else {
+      els.runlist = null;
+      els.main.appendChild(h("div", { class: "content col" }, els.editor, els.dock));
+    }
     if (S.conflict) {
       els.editor.appendChild(h("div", { class: "banner err" }, h("span", { text: t("conflict") + " " }),
         h("button", { class: "btn sm", text: t("reload"), onclick: function () { openWorkflow(w.id); } })));
     }
-    if (S.tab === "runs") renderHistoryTab(); else renderGraph();
+    if (S.tab === "runs") { renderGraph(els.editor, true); autoSelectRun(); } else renderGraph();
     renderRunPane();
     updateSaveState();
     applyPanels();
@@ -898,6 +903,7 @@
     return el;
   }
   S.gv = { x: 20, y: 20, k: 1, sel: null, selEdge: null, fitted: null };
+  S.gv2 = { x: 20, y: 20, k: 1, sel: null, selEdge: null, fitted: null };   // grafo de solo lectura (pestaña Ejecuciones)
 
   function autoLayout(force) {
     var def = S.current.def, preds = {}, changed = false;
@@ -924,8 +930,9 @@
   }
   function wouldCycle(src, tgt) { return src === tgt || !!descendants(tgt)[src]; }
 
-  function renderGraph() {
-    var ed = els.editor, w = S.current, def = w.def, edit = canEdit(), G = S.gv;
+  function renderGraph(ed, ro) {
+    ed = ed || els.editor;
+    var w = S.current, def = w.def, edit = !ro && canEdit(), G = ro ? S.gv2 : S.gv;
     ed.classList.add("graph"); clear(ed);
     if (edit && autoLayout(false)) touch();
     var nmap = {}; def.nodes.forEach(function (n) { nmap[n.id] = n; });
@@ -949,7 +956,7 @@
         var a = nmap[e.source], b = nmap[e.target]; if (!a || !b) return;
         var d = edgePath(a, b), sel = G.selEdge && G.selEdge.s === e.source && G.selEdge.t === e.target;
         var vis = sv("path", { d: d, class: "gedge" + (sel ? " sel" : ""), "marker-end": "url(#arr)" });
-        var hit = sv("path", { d: d, class: "gedge-hit", onclick: function (ev) { ev.stopPropagation(); G.selEdge = { s: e.source, t: e.target }; G.sel = null; renderMain(); } });
+        var hit = sv("path", { d: d, class: "gedge-hit", onclick: function (ev) { ev.stopPropagation(); if (ro) return; G.selEdge = { s: e.source, t: e.target }; G.sel = null; renderMain(); } });
         gEdges.appendChild(vis); gEdges.appendChild(hit); edgeEls.push({ e: e, vis: vis, hit: hit });
       });
     }
@@ -958,7 +965,7 @@
     }
     def.nodes.forEach(function (n) {
       var p = S.pmap[n.type], st = runStatusOf(n.id);
-      var g = sv("g", { class: "gnode" + (G.sel === n.id ? " sel" : "") + (n.enabled === false ? " off" : "") + (st ? " st-" + st : "") + (p ? "" : " bad"),
+      var g = sv("g", { class: "gnode" + ((ro ? S.dkSel === n.id : G.sel === n.id) ? " sel" : "") + (n.enabled === false ? " off" : "") + (st ? " st-" + st : "") + (p ? "" : " bad"),
         transform: "translate(" + n.position.x + "," + n.position.y + ")" });
       g.appendChild(sv("rect", { class: "gbox", width: NW, height: NH, rx: 12 }));
       g.appendChild(sv("text", { class: "gicon", x: 12, y: 36, text: p ? (p.icon || "🧩") : "⚠" }));
@@ -985,7 +992,7 @@
         }
         function up() {
           g.removeEventListener("pointermove", mv); g.removeEventListener("pointerup", up); g.removeEventListener("pointercancel", up);
-          if (moved) { touch(); } else { G.sel = n.id; G.selEdge = null; S.collapsed[n.id] = false; renderMain(); }
+          if (moved) { touch(); } else if (ro) { pickStep(n.id); } else { G.sel = n.id; G.selEdge = null; S.collapsed[n.id] = false; renderMain(); }
         }
         g.addEventListener("pointermove", mv); g.addEventListener("pointerup", up); g.addEventListener("pointercancel", up);
       });
@@ -1041,14 +1048,14 @@
       deleteSelection();
     });
     // Ctrl+C / Ctrl+V / Ctrl+D sobre el grafo (el paso se pega sin conexiones)
-    S.gkey = function (ev) {
+    if (!ro) S.gkey = function (ev) {
       var k = (ev.key || "").toLowerCase(), n = G.sel && nmap[G.sel];
       if (k === "c" && n) { ev.preventDefault(); clipCopy(n); toast(lang === "es" ? "Paso copiado: «" + n.label + "». Use Ctrl+V para pegarlo (también en otro workflow)." : "Step copied. Press Ctrl+V to paste it.", null, null, 3500); }
       else if (k === "v" && edit && clipLoad()) { ev.preventDefault(); clipPaste(null, null); }
       else if (k === "d" && edit && n) { ev.preventDefault(); clipCopy(n); clipPaste(null, n.position); }
     };
     svg.addEventListener("contextmenu", function (ev) {
-      ev.preventDefault();
+      ev.preventDefault(); if (ro) return;
       var gn = ev.target.closest ? ev.target.closest(".gnode") : null, es = lang === "es", q = toGraph(ev);
       if (gn) {
         var id = Object.keys(nodeEls).filter(function (k) { return nodeEls[k] === gn; })[0], n = nmap[id];
@@ -1098,7 +1105,10 @@
       if (ref) def.edges.push({ source: ref.id, target: id });
       def.nodes.push(node); G.sel = id; G.selEdge = null; S.collapsed[id] = false; touch(); renderMain();
     });
-    var tools = h("div", { class: "gtools" },
+    var tools = ro ? h("div", { class: "gtools" },
+      h("button", { class: "btn sm", text: lang === "es" ? "Ajustar" : "Fit", onclick: fit }),
+      h("span", { class: "muted", style: "font-size:12px", text: lang === "es" ? "Vista de solo lectura de la ejecución elegida. Pulse un paso para ver su registro." : "Read-only view of the selected run. Click a step to see its log." })) :
+      h("div", { class: "gtools" },
       edit ? sel : null,
       h("button", { class: "btn sm", text: lang === "es" ? "Ajustar" : "Fit", onclick: fit }),
       panelBtn("insp", lang === "es" ? "Mostrar u ocultar el panel del paso" : "Show or hide the step panel", lang === "es" ? "☰ Panel" : "☰ Panel"),
@@ -1117,7 +1127,8 @@
       h("span", { class: "muted", style: "font-size:12px", text: lang === "es" ? "Un paso nuevo se conecta al nodo seleccionado. Arrastre del punto derecho de un nodo al izquierdo de otro para conectar" : "Drag from a node's right dot to another's left dot to connect" }));
 
     var inspector = h("div", { class: "inspector" });
-    if (G.sel && nmap[G.sel]) {
+    if (ro) { /* sin inspector */ }
+    else if (G.sel && nmap[G.sel]) {
       inspector.appendChild(stepCard(nmap[G.sel], def.nodes.indexOf(nmap[G.sel])));
     } else if (G.selEdge) {
       inspector.appendChild(h("div", { class: "muted", style: "padding:14px", text: (lang === "es" ? "Conexión: " : "Link: ") + labelOf(nmap[G.selEdge.s] || {}) + " → " + labelOf(nmap[G.selEdge.t] || {}) + (lang === "es" ? ". Pulse Suprimir o «Quitar»." : ". Press Delete or Remove.") }));
@@ -1125,7 +1136,7 @@
       inspector.appendChild(h("div", { class: "muted", style: "padding:14px", text: lang === "es" ? "Seleccione un nodo para editar sus campos." : "Select a node to edit its fields." }));
       inspector.appendChild(varsPanel());
     }
-    if (w.problems) {
+    if (w.problems && !ro) {
       var pb = h("div", { class: "problems", style: "margin:8px" });
       if (w.problems.valid && !w.problems.warnings.length) pb.appendChild(h("div", { text: "✓ " + t("valid_ok") }));
       w.problems.errors.forEach(function (m) { pb.appendChild(h("div", { class: "e", text: "✗ " + m })); });
@@ -1133,15 +1144,17 @@
       inspector.insertBefore(pb, inspector.firstChild);
     }
     var canvas = h("div", { class: "gcanvas" }, tools, svg);
-    if (S.conflict) canvas.insertBefore(h("div", { class: "banner err", style: "margin:8px" }, h("span", { text: t("conflict") + " " }),
+    if (S.conflict && !ro) canvas.insertBefore(h("div", { class: "banner err", style: "margin:8px" }, h("span", { text: t("conflict") + " " }),
       h("button", { class: "btn sm", text: t("reload"), onclick: function () { openWorkflow(w.id); } })), canvas.firstChild);
-    ed.appendChild(canvas); ed.appendChild(inspector);
+    ed.appendChild(canvas); if (!ro) ed.appendChild(inspector);
     if (G.fitted !== w.id) { G.fitted = w.id; setTimeout(fit, 0); }
     S.graphRefresh = function () {
       def.nodes.forEach(function (n) {
         var g = nodeEls[n.id]; if (!g) return;
         var st = runStatusOf(n.id);
-        g.setAttribute("class", g.getAttribute("class").replace(/\bst-\S+/g, "").trim() + (st ? " st-" + st : ""));
+        var base = g.getAttribute("class").replace(/\bst-\S+/g, "").trim();
+        if (ro) base = base.replace(/\bsel\b/g, "").trim() + (S.dkSel === n.id ? " sel" : "");
+        g.setAttribute("class", base + (st ? " st-" + st : ""));
       });
     };
   }
@@ -1172,8 +1185,8 @@
       return api("POST", "/api/workflows/" + w.id + "/run", body);
     }).then(function (d) {
       S.live = { id: d.run_id, after: 0, nodes: {}, order: [], status: "queued", done: false, logs: {}, wfname: w.name, started: Date.now(), reused: d.reused || [], partial: !!only };
-      S.viewRun = null;
-      setRunning(true); renderRunPane(); poll(); refreshList().catch(function () {});
+      S.selRun = d.run_id; S.dkAuto = true; S.dkSel = null; S.dkOpen = true;
+      setRunning(true); renderRunPane(); poll(); refreshList().catch(function () {}); loadRuns();
     }, function (e) { toast(e.message); });
   }
   // ejecución parcial desde el grafo: modo "only" (solo este), "until" (hasta aquí), "from" (desde aquí)
@@ -1221,16 +1234,17 @@
   }
   function loadRuns() {
     var w = S.current; if (!w) return;
-    api("GET", "/api/workflows/" + w.id + "/runs?limit=40").then(function (d) {
+    api("GET", "/api/workflows/" + w.id + "/runs?limit=100").then(function (d) {
       if (S.current && S.current.id === w.id) {
         S.runs = d.runs;
         // reconectar con una ejecución que sigue en curso (p. ej. al volver de otro workflow)
         var act = d.runs.filter(function (r) { return r.status === "queued" || r.status === "running"; })[0];
-        if (act && !S.viewRun && (!S.live || S.live.done)) {
+        if (act && (!S.live || S.live.done)) {
           S.live = { id: act.id, after: 0, nodes: {}, order: [], status: act.status, done: false, logs: {}, wfname: w.name, started: Date.now(), reused: [], partial: false };
           stopPolling(); setRunning(true); poll();
         }
-        if (S.tab === "runs") { clear(els.editor); renderHistoryTab(); } else renderRunPane();
+        if (S.tab === "runs") autoSelectRun();
+        renderRunPane();
       }
     }, function () {});
   }
@@ -1245,68 +1259,146 @@
     }, 4000);
   }
 
-  function nodeMsg(n, onclick) {
-    var st = n.status;
-    var head = h("div", { class: "mh" },
-      st === "running" ? h("span", { class: "spin" }) : h("span", { text: { ok: "✓", error: "✗", partial: "◐", skipped: "↷", cancelled: "■", pending: "·" }[st] || "·" }),
-      h("span", { text: n.label }), n.type ? h("span", { class: "muted", style: "font-weight:400;font-size:12px", text: n.type }) : null,
-      h("span", { class: "st", text: (st === "pending" && S.live && S.live.partial && (S.live.done || (S.live.reused || []).some(function (r) { return r.node === n.label; }))
-        ? (lang === "es" ? "Reutilizado" : "Reused") : (t(st) || st)) + (n.duration != null ? " · " + fmtDur(n.duration) : "") }));
-    var m = h("div", { class: "msg " + st, onclick: onclick }, head);
-    if (n.summary) m.appendChild(h("div", { class: "summ", text: typeof n.summary === "string" ? n.summary : JSON.stringify(n.summary) }));
-    if (n.logs && n.logs.length) {
-      var lg = h("div", { class: "logs" });
-      n.logs.forEach(function (l) { lg.appendChild(h("div", { class: l.level, text: l.message })); });
-      m.appendChild(lg);
+  // ---------------------------------------------------------------- registro (dock) y lista de ejecuciones
+  var STEP_ICON = { ok: "✓", error: "✗", partial: "◐", skipped: "↷", cancelled: "■", pending: "·" };
+  S.dkOpen = true; S.dkAuto = true; S.dkSel = null; S.selRun = null;
+  // ejecución que pintan el grafo y el registro: en Editor, la última en vivo; en Ejecuciones, la elegida de la lista
+  function runSrc() {
+    if (S.tab === "runs") {
+      if (S.live && S.selRun === S.live.id) return { kind: "live", L: S.live };
+      if (S.viewRun && S.viewRun.id === S.selRun) return { kind: "past", run: S.viewRun };
+      return null;
     }
-    if (n.error) m.appendChild(h("div", { class: "err-text", text: n.error }));
-    return m;
+    return S.live ? { kind: "live", L: S.live } : null;
   }
-
-  function renderRunPane() {
-    var pane = els.runpane; if (!pane) return;
-    if (S.tab === "graph" && S.graphRefresh) S.graphRefresh();
-    clear(pane);
-    var L = S.live;
-    pane.appendChild(h("div", { class: "rp-head" }, h("b", { text: t("runs") }), h("span", { class: "grow", style: "flex:1" }),
-      L ? h("span", { class: "badge " + (L.status === "ok" ? "ok" : L.status === "error" ? "err" : ""), text: t(L.status) || L.status }) : null,
-      h("button", { class: "btn sm icon", title: lang === "es" ? "Ocultar panel" : "Hide panel", "aria-label": lang === "es" ? "Ocultar panel" : "Hide panel", text: "☰",
-        onclick: function () { setPanelHidden("rp", true); } })));
-    var body = h("div", { class: "rp-body" });
-    pane.appendChild(body);
-    if (S.viewRun) {
-      body.appendChild(h("button", { class: "btn sm", text: "← " + t("history"), onclick: function () { S.viewRun = null; renderRunPane(); } }));
-      renderPastRun(body, S.viewRun);
+  function stepsOf(src) {
+    if (!src) return null;
+    if (src.kind === "live") {
+      var L = src.L;
+      return { id: L.id, status: L.status, done: L.done, started: new Date(L.started).toISOString(), duration: L.duration, error: L.error, partial: L.partial, reused: L.reused || [],
+        steps: L.order.map(function (id) {
+          var n = L.nodes[id];
+          return { id: id, label: n.label, type: n.type, status: n.status, duration: n.duration, summary: n.summary, error: n.error, logs: n.logs || [],
+            has_result: L.done && n.status !== "pending" && n.status !== "running" };
+        }) };
+    }
+    var r = src.run;
+    return { id: r.id, status: r.status, done: true, started: r.started, duration: r.duration, error: r.error, partial: false, reused: [],
+      steps: (r.nodes || []).slice().sort(function (a, b) { return (a.started || "") < (b.started || "") ? -1 : 1; }).map(function (n) {
+        return { id: n.node_id, label: n.label, type: n.type, status: n.status, duration: n.duration, summary: n.summary, error: n.error, logs: n.logs || [], has_result: !!n.has_result };
+      }) };
+  }
+  function autoPick(info) {
+    var st = info.steps; if (!st.length) return null;
+    var i, run = null;
+    for (i = st.length - 1; i >= 0; i--) if (st[i].status === "running") { run = st[i]; break; }
+    if (run) return run.id;
+    if (info.done) { for (i = 0; i < st.length; i++) if (st[i].status === "error") return st[i].id; }
+    for (i = st.length - 1; i >= 0; i--) if (st[i].status !== "pending" && st[i].status !== "skipped") return st[i].id;
+    return st[0].id;
+  }
+  function pickStep(id) { S.dkSel = id; S.dkAuto = false; S.dkOpen = true; renderRunPane(); }
+  function stepStatusText(stp, info) {
+    var st = stp.status;
+    var txt = (st === "pending" && info.partial && (info.done || info.reused.some(function (r) { return r.node === stp.label; }))) ? (lang === "es" ? "Reutilizado" : "Reused") : (t(st) || st);
+    return txt + (stp.duration != null ? " · " + fmtDur(stp.duration) : "");
+  }
+  function renderDock() {
+    var dk = els.dock; if (!dk) return;
+    var es = lang === "es";
+    var oldDet = dk.querySelector(".dk-detail"), oldList = dk.querySelector(".dk-steps");
+    var oldTop = oldDet ? oldDet.scrollTop : 0, oldListTop = oldList ? oldList.scrollTop : 0, sameSel = dk._lastSel === S.dkSel;
+    clear(dk);
+    dk.classList.toggle("closed", !S.dkOpen);
+    var info = stepsOf(runSrc());
+    var head = h("div", { class: "dk-head", onclick: function (ev) { if (ev.target.closest && ev.target.closest("button")) return; S.dkOpen = !S.dkOpen; renderDock(); } },
+      h("span", { class: "dk-caret", text: S.dkOpen ? "▾" : "▸" }), h("b", { text: es ? "Registro" : "Log" }),
+      info ? h("span", { class: "badge " + (info.status === "ok" ? "ok" : info.status === "error" ? "err" : ""), text: t(info.status) || info.status }) : null,
+      info ? h("span", { class: "muted", style: "font-size:12px", text: fmtDate(info.started) + (info.duration != null ? " · " + fmtDur(info.duration) : "") }) : null,
+      h("span", { style: "flex:1" }));
+    var src = runSrc();
+    if (info && src.kind === "past") {
+      if (canRun()) head.appendChild(h("button", { class: "btn sm", text: "↻ " + t("run"), onclick: function () { startRun(); } }));
+      if (canEdit() && info.status !== "running" && info.status !== "queued")
+        head.appendChild(h("button", { class: "btn sm danger", text: "🗑 " + (es ? "Eliminar esta ejecución" : "Delete this run"), onclick: function () { deleteRun(info.id); } }));
+    }
+    dk.appendChild(head);
+    if (!S.dkOpen) return;
+    var body = h("div", { class: "dk-body" }); dk.appendChild(body);
+    if (!info) {
+      body.appendChild(h("div", { class: "muted dk-empty", text: S.tab === "runs" ? (S.runs.length ? "…" : t("no_runs"))
+        : (es ? "Aquí verá el registro paso a paso al pulsar «Ejecutar». El historial completo está en la pestaña Ejecuciones." : "Run the workflow to see the step-by-step log here. Full history is in the Runs tab.") }));
       return;
     }
-    if (L) {
-      body.appendChild(h("div", { class: "msg sys", text: (L.status === "queued" ? t("queued") : t("run_started")) + " · " + fmtDate(new Date(L.started).toISOString()) }));
-      if (L.partial) body.appendChild(h("div", { class: "msg sys", text: lang === "es" ? "Ejecución parcial" : "Partial run" }));
-      (L.reused || []).forEach(function (r) {
-        body.appendChild(h("div", { class: "msg sys", text: (lang === "es" ? "Reutiliza el resultado de " : "Reuses the result of ") + r.node + (r.finished ? " (" + fmtDate(r.finished) + ")" : "") }));
-      });
-      L.order.forEach(function (id) { body.appendChild(nodeMsg(L.nodes[id], function () { if (L.done) showNodeResult(L.id, id); })); });
-      if (L.done) {
-        body.appendChild(h("div", { class: "msg sys", text: (t(L.status) || L.status) + (L.duration != null ? " · " + fmtDur(L.duration) : "") }));
-        if (L.error) body.appendChild(h("div", { class: "msg error" }, h("div", { class: "err-text", text: L.error })));
+    if (S.dkAuto || !info.steps.some(function (x) { return x.id === S.dkSel; })) S.dkSel = autoPick(info);
+    dk._lastSel = S.dkSel;
+    var list = h("div", { class: "dk-steps" });
+    if (info.partial) list.appendChild(h("div", { class: "dk-note", text: es ? "Ejecución parcial" : "Partial run" }));
+    info.reused.forEach(function (r) { list.appendChild(h("div", { class: "dk-note", text: (es ? "Reutiliza el resultado de " : "Reuses the result of ") + r.node + (r.finished ? " (" + fmtDate(r.finished) + ")" : "") })); });
+    if (info.error) list.appendChild(h("div", { class: "dk-note err", text: info.error }));
+    info.steps.forEach(function (x) {
+      list.appendChild(h("div", { class: "dk-step " + x.status + (x.id === S.dkSel ? " sel" : ""), onclick: function () { pickStep(x.id); } },
+        x.status === "running" ? h("span", { class: "spin" }) : h("span", { class: "dk-ic", text: STEP_ICON[x.status] || "·" }),
+        h("span", { class: "dk-lb", text: x.label }),
+        h("span", { class: "dk-st", text: stepStatusText(x, info) })));
+    });
+    body.appendChild(list);
+    var det = h("div", { class: "dk-detail" }), cur = info.steps.filter(function (x) { return x.id === S.dkSel; })[0];
+    if (cur) {
+      det.appendChild(h("div", { class: "dk-dh" }, h("b", { text: cur.label }), cur.type ? h("span", { class: "muted", text: cur.type }) : null,
+        h("span", { style: "flex:1" }),
+        cur.has_result ? h("button", { class: "btn sm", text: es ? "Ver resultado" : "View result", onclick: function () { showNodeResult(info.id, cur.id); } }) : null));
+      if (cur.summary) det.appendChild(h("div", { class: "summ", text: typeof cur.summary === "string" ? cur.summary : JSON.stringify(cur.summary) }));
+      if (cur.error) det.appendChild(h("div", { class: "err-text", text: cur.error }));
+      if (cur.logs.length) {
+        var lg = h("div", { class: "dk-log" });
+        cur.logs.forEach(function (l) { lg.appendChild(h("div", { class: l.level, text: l.message })); });
+        det.appendChild(lg);
+      } else if (!cur.summary && !cur.error) {
+        det.appendChild(h("div", { class: "muted", text: cur.status === "pending" ? (es ? "Aún no se ejecuta." : "Not run yet.") : (es ? "Sin mensajes." : "No messages.") }));
       }
-      body.scrollTop = body.scrollHeight;
-    } else {
-      body.appendChild(h("div", { class: "muted", text: S.runs.length ? "" : t("no_runs") }));
     }
-    if (S.runs.length) {
-      body.appendChild(h("div", { style: "display:flex;align-items:center;margin-top:8px" },
-        h("span", { class: "muted", style: "font-size:12px;flex:1", text: t("history") }),
-        canEdit() ? h("button", { class: "btn sm icon", title: lang === "es" ? "Limpiar historial…" : "Clear history…", text: "🧹", onclick: clearHistoryDialog }) : null));
-      var hist = h("div", { class: "hist" });
-      S.runs.slice(0, 10).forEach(function (r) { hist.appendChild(runRow(r)); });
-      body.appendChild(hist);
-    }
+    body.appendChild(det);
+    det.scrollTop = (S.dkAuto && info.status === "running") ? det.scrollHeight : (sameSel ? oldTop : 0);
+    list.scrollTop = oldListTop;
   }
-  function runRow(r) {
-    return h("div", { class: "hi", onclick: function () { openPastRun(r.id); } }, h("span", { class: "dot " + r.status }),
-      h("span", { style: "flex:1", text: fmtDate(r.started) + (r.started_by_name ? " · " + r.started_by_name : "") }),
-      h("span", { class: "muted", text: fmtDur(r.duration) }), delRunBtn(r));
+  function renderRunPane() {
+    if (S.graphRefresh) { try { S.graphRefresh(); } catch (e) { /* aún no hay grafo */ } }
+    if (S.tab === "runs") renderRunList();
+    renderDock();
+  }
+  function renderRunList() {
+    var box = els.runlist; if (!box) return;
+    var es = lang === "es", oldB = box.querySelector(".rl-body"), top = oldB ? oldB.scrollTop : 0;
+    clear(box);
+    var rows = S.runs.slice();
+    if (S.live && !rows.some(function (r) { return r.id === S.live.id; }))
+      rows.unshift({ id: S.live.id, status: S.live.status, started: new Date(S.live.started).toISOString(), started_by_name: S.user.display_name || S.user.username, duration: null });
+    box.appendChild(h("div", { class: "rl-head" }, h("b", { text: t("runs") }), h("span", { class: "muted", text: rows.length ? String(rows.length) : "" }), h("span", { style: "flex:1" }),
+      (canEdit() && rows.length) ? h("button", { class: "btn sm icon", title: es ? "Limpiar historial…" : "Clear history…", "aria-label": es ? "Limpiar historial" : "Clear history", text: "🧹", onclick: clearHistoryDialog }) : null));
+    var body = h("div", { class: "rl-body" });
+    if (!rows.length) body.appendChild(h("div", { class: "muted", style: "padding:14px;text-align:center", text: t("no_runs") }));
+    rows.forEach(function (r) {
+      var st = (S.live && S.live.id === r.id) ? S.live.status : r.status;
+      var dur = (S.live && S.live.id === r.id && !S.live.done) ? null : ((S.live && S.live.id === r.id && S.live.duration != null) ? S.live.duration : r.duration);
+      body.appendChild(h("div", { class: "rl-row" + (r.id === S.selRun ? " sel" : ""), onclick: function () { openPastRun(r.id); } },
+        st === "running" || st === "queued" ? h("span", { class: "spin" }) : h("span", { class: "dot " + st }),
+        h("div", { class: "rl-mid" }, h("div", { text: fmtDate(r.started) }),
+          h("div", { class: "muted", style: "font-size:12px", text: (t(st) || st) + (r.started_by_name ? " · " + r.started_by_name : "") + (r.error ? " · " + String(r.error).slice(0, 60) : "") })),
+        h("span", { class: "muted", text: dur != null ? fmtDur(dur) : "" }),
+        delRunBtn(r)));
+    });
+    box.appendChild(body); body.scrollTop = top;
+  }
+  // elige una ejecución al entrar en la pestaña: la que está en curso o, si no, la más reciente
+  function autoSelectRun() {
+    if (S.selRun && (S.runs.some(function (r) { return r.id === S.selRun; }) || (S.live && S.live.id === S.selRun))) {
+      if (!(S.live && S.live.id === S.selRun) && !(S.viewRun && S.viewRun.id === S.selRun)) openPastRun(S.selRun);
+      return;
+    }
+    S.selRun = S.live ? S.live.id : (S.runs[0] ? S.runs[0].id : null);
+    S.dkAuto = true; S.dkSel = null;
+    if (S.selRun && !(S.live && S.live.id === S.selRun)) openPastRun(S.selRun);
   }
   function delRunBtn(r, after) {
     if (!canEdit() || r.status === "running" || r.status === "queued") return null;
@@ -1319,6 +1411,7 @@
       es ? "Eliminar" : "Delete", function () {
         api("DELETE", "/api/runs/" + id).then(function () {
           if (S.viewRun && S.viewRun.id === id) S.viewRun = null;
+          if (S.selRun === id) S.selRun = null;
           toast(es ? "Ejecución eliminada" : "Run deleted"); loadRuns(); refreshList(); if (after) after();
         }, function (e) { toast(e.message); });
       });
@@ -1330,27 +1423,17 @@
       h("div", { class: "muted", style: "font-size:12px", text: es ? "Las ejecuciones en curso no se tocan. No se puede deshacer." : "Runs in progress are not touched. This cannot be undone." })),
       [{ label: t("cancel") }, { label: es ? "Eliminar" : "Delete", cls: "danger", fn: function () {
         api("POST", "/api/workflows/" + S.current.id + "/runs/clear", { keep: parseInt(keep.value, 10) || 0 }).then(function (r) {
-          S.viewRun = null; toast((es ? "Ejecuciones eliminadas: " : "Runs deleted: ") + r.deleted); loadRuns(); refreshList();
+          S.viewRun = null; S.selRun = null; toast((es ? "Ejecuciones eliminadas: " : "Runs deleted: ") + r.deleted); loadRuns(); refreshList();
         }, function (e) { toast(e.message); }); } }]);
   }
   function openPastRun(id) {
+    if (S.selRun !== id) { S.dkAuto = true; S.dkSel = null; }
+    S.selRun = id;
+    if (S.live && S.live.id === id) { renderRunPane(); return; }
     api("GET", "/api/runs/" + id).then(function (d) {
-      S.viewRun = d.run; S.live = null; setRunning(false);
-      if (S.tab === "runs") { S.tab = "graph"; renderMain(); } else renderRunPane();
+      if (S.selRun !== id) return;
+      S.viewRun = d.run; renderRunPane();
     }, function (e) { toast(e.message); });
-  }
-  function renderPastRun(body, run) {
-    body.appendChild(h("div", { class: "msg sys", text: fmtDate(run.started) + " · " + (t(run.status) || run.status) + " · " + fmtDur(run.duration) }));
-    if (run.error) body.appendChild(h("div", { class: "msg error" }, h("div", { class: "err-text", text: run.error })));
-    run.nodes.sort(function (a, b) { return (a.started || "") < (b.started || "") ? -1 : 1; }).forEach(function (n) {
-      body.appendChild(nodeMsg({ id: n.node_id, label: n.label, type: n.type, status: n.status, duration: n.duration, error: n.error, logs: n.logs || [],
-        summary: n.summary }, function () { if (n.has_result) showNodeResult(run.id, n.node_id); }));
-    });
-    var vb = S.current && canRun() ? h("button", { class: "btn sm", text: "↻ " + t("run"), onclick: function () { startRun(); } }) : null;
-    if (vb) body.appendChild(vb);
-    var db = h("button", { class: "btn sm danger", style: "margin-left:6px", text: "🗑 " + (lang === "es" ? "Eliminar esta ejecución" : "Delete this run"),
-      onclick: function () { deleteRun(run.id, function () { renderRunPane(); }); } });
-    if (canEdit() && run.status !== "running" && run.status !== "queued") body.appendChild(db);
   }
   function showNodeResult(runId, nodeId) {
     var pre = h("pre", { class: "json", text: "…" });
@@ -1361,28 +1444,6 @@
       pre.textContent = s === undefined ? "—" : s;
     }, function (e) { pre.textContent = e.message; });
   }
-  function renderHistoryTab() {
-    var ed = els.editor; clear(ed);
-    var steps = h("div", { class: "steps" });
-    if (!S.runs.length) steps.appendChild(h("div", { class: "muted", style: "text-align:center", text: t("no_runs") }));
-    else {
-      var tb = h("table", null, h("thead", null, h("tr", null, h("th", { text: t("status") }), h("th", { text: "Inicio" }), h("th", { text: t("by") }), h("th", { text: "Duración" }), h("th", { text: "" }), h("th", { text: "" }))));
-      var tbody = h("tbody");
-      S.runs.forEach(function (r) {
-        tbody.appendChild(h("tr", { style: "cursor:pointer", onclick: function () { openPastRun(r.id); } },
-          h("td", null, h("span", { class: "dot " + r.status }), " ", t(r.status) || r.status),
-          h("td", { text: fmtDate(r.started) }), h("td", { text: r.started_by_name || r.trigger || "" }), h("td", { text: fmtDur(r.duration) }),
-          h("td", { class: "muted", text: r.error ? String(r.error).slice(0, 80) : "" }),
-          h("td", { style: "text-align:right" }, delRunBtn(r))));
-      });
-      tb.appendChild(tbody);
-      if (canEdit()) steps.appendChild(h("div", { style: "text-align:right;margin-bottom:6px" },
-        h("button", { class: "btn sm danger", text: "🧹 " + (lang === "es" ? "Limpiar historial…" : "Clear history…"), onclick: clearHistoryDialog })));
-      steps.appendChild(h("div", { class: "card", style: "padding:6px 10px" }, tb));
-    }
-    ed.appendChild(steps);
-  }
-
   // ============================================================ compartir
   function shareDialog() {
     var w = S.current;

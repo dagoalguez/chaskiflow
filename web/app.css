@@ -103,10 +103,6 @@ label.chk { display: flex; align-items: center; gap: 8px; }
 .tab.active { color: var(--text); border-bottom-color: var(--accent); }
 .content { flex: 1; display: flex; min-height: 0; }
 .editor { flex: 1; min-width: 0; overflow: auto; padding: 16px; }
-.runpane { width: 400px; flex: none; border-left: 1px solid var(--border); background: var(--panel);
-  display: flex; flex-direction: column; min-height: 0; }
-.runpane .rp-head { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
-.runpane .rp-body { flex: 1; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
 .banner { margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--warn); background: var(--panel); }
 .banner.err { border-color: var(--err); }
 
@@ -196,7 +192,6 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .login .errmsg { color: var(--err); margin-top: 10px; min-height: 18px; font-size: 13px; }
 
 @media (max-width: 900px) {
-  .runpane { position: fixed; right: 0; top: 48px; bottom: 0; width: min(400px, 100%); z-index: 20; box-shadow: -4px 0 20px rgba(0,0,0,.25); }
   .sidebar { width: 220px; }
 }
 
@@ -232,7 +227,6 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .inspector .ch .type { display: none; }
 .inspector .ch .btn.icon:not(:last-child) { display: none; }
 .inspector { width: 300px; }
-.editor.graph ~ .runpane, .content:has(.editor.graph) .runpane { width: 340px; }
 
 .imp-report { max-height: 55vh; overflow: auto; font-size: 13px; }
 .imp-row { padding: 4px 0; border-bottom: 1px solid var(--border); }
@@ -243,11 +237,9 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 
 /* paneles que se ocultan con ☰ */
 .shell.hide-sb .sidebar { display: none; }
-.shell.hide-rp .runpane { display: none; }
 .shell.hide-insp .inspector { display: none; }
 .topbar button.panel-toggle { font-size: 18px; line-height: 1; padding: 3px 9px; }
 .btn.panel-toggle.on { background: var(--panel2); }
-.rp-head .btn.icon { margin-left: 6px; }
 
 .gtools .gplay { display: inline-flex; gap: 4px; margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--border); }
 
@@ -261,3 +253,48 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .ctxmenu .mi.danger { color: var(--err); }
 .ctxmenu .k { color: var(--muted); font-size: 12px; }
 .ctxmenu .sep { height: 1px; background: var(--border); margin: 4px 2px; }
+
+/* ---- Editor / Ejecuciones: registro inferior y lista de ejecuciones ---- */
+.content.col { flex-direction: column; }
+.content.col > .editor, .runright > .editor { min-height: 0; }
+.runsview { min-width: 0; }
+.runlist { width: 290px; flex: none; border-right: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+.rl-head { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
+.rl-body { flex: 1; overflow: auto; padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+.rl-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; cursor: pointer; font-size: 13px; border: 1px solid transparent; }
+.rl-row:hover { background: var(--panel2); }
+.rl-row.sel { background: var(--panel2); border-color: var(--accent); }
+.rl-row .rl-mid { flex: 1; min-width: 0; }
+.rl-row .rl-mid > div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rl-row .del { opacity: 0; padding: 0 6px; } .rl-row:hover .del, .rl-row .del:focus { opacity: 1; }
+.runright { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+.logdock { flex: none; height: min(250px, 38vh); border-top: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+.logdock.closed { height: auto; }
+.dk-head { display: flex; align-items: center; gap: 8px; padding: 6px 12px; cursor: pointer; user-select: none; border-bottom: 1px solid var(--border); }
+.logdock.closed .dk-head { border-bottom: 0; }
+.dk-caret { width: 12px; color: var(--muted); }
+.dk-body { flex: 1; display: flex; min-height: 0; }
+.dk-steps { width: 300px; flex: none; overflow: auto; border-right: 1px solid var(--border); padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+.dk-step { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; font-size: 13px; border-left: 3px solid transparent; }
+.dk-step:hover { background: var(--panel2); } .dk-step.sel { background: var(--panel2); }
+.dk-step .dk-ic { width: 14px; text-align: center; font-weight: 700; }
+.dk-step .dk-lb { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.dk-step .dk-st { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.dk-step.ok { border-left-color: var(--ok); } .dk-step.ok .dk-ic { color: var(--ok); }
+.dk-step.error { border-left-color: var(--err); } .dk-step.error .dk-ic { color: var(--err); }
+.dk-step.partial, .dk-step.skipped { border-left-color: var(--warn); }
+.dk-step.running { border-left-color: var(--run); } .dk-step.cancelled { border-left-color: var(--muted); }
+.dk-note { font-size: 12px; color: var(--muted); padding: 2px 8px; } .dk-note.err { color: var(--err); white-space: pre-wrap; }
+.dk-detail { flex: 1; min-width: 0; overflow: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; }
+.dk-dh { display: flex; align-items: center; gap: 8px; }
+.dk-detail .summ { font-size: 12px; color: var(--muted); }
+.dk-detail .err-text { color: var(--err); font-size: 13px; white-space: pre-wrap; }
+.dk-log { font: 12px/1.45 var(--mono); white-space: pre-wrap; word-break: break-word; }
+.dk-log .warn { color: var(--warn); } .dk-log .error { color: var(--err); }
+.dk-empty { padding: 14px; }
+@media (max-width: 900px) {
+  .runsview { flex-direction: column; }
+  .runlist { width: auto; max-height: 30%; border-right: 0; border-bottom: 1px solid var(--border); }
+  .dk-body { flex-direction: column; } .dk-steps { width: auto; max-height: 40%; border-right: 0; border-bottom: 1px solid var(--border); }
+  .logdock { height: 45%; }
+}

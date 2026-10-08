@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.0 — 2026-10-08
+- **Rediseño de Ejecuciones (solo interfaz, sin cambios en el API ni en los datos).** Había dos lugares para ver ejecuciones (panel derecho y pestaña con tabla) y el historial se mostraba «doble». Ahora:
+  - **Pestaña «Editor»** (antes «Grafo»): el grafo y el panel del paso, más un **Registro** plegable abajo. Al pulsar «Ejecutar» el grafo se pinta paso a paso (gris → azul girando → verde / rojo) y el Registro lista cada paso con su estado y duración; a la derecha, el detalle del paso activo con sus mensajes en vivo (sigue solo al paso que corre y, al terminar, se queda en el primer error).
+  - **Pestaña «Ejecuciones»** (estilo n8n): **lista de ejecuciones a la izquierda**, y a la derecha el **grafo de esa ejecución en solo lectura** con sus colores + el mismo Registro. Pulsar un nodo del grafo selecciona su registro. Se abre sola la ejecución en curso o la más reciente. Desde aquí se puede eliminar una ejecución, limpiar el historial y volver a ejecutar.
+  - Se **quitó el panel derecho de ejecuciones** (y su botón ☰) y la tabla del historial. Se conservan las notas «Ejecución parcial» y «Reutiliza el resultado de X», el botón «Ver resultado» y los accesos «Limpiar historial» y «Eliminar esta ejecución».
+  - La lista muestra hasta 100 ejecuciones (antes 40).
+- Pruebas visuales (`tests/ui_*_smoke.py`) adaptadas; se corrigieron dos selectores frágiles que ya fallaban (papelera en `ui_cleanup_smoke`, arista cero-altura en `ui_graph_smoke`).
+
 ## 0.14.3 — 2026-10-07
 - **Corrección importante en `pdf_keyword_scan`: PDF con el texto convertido a contornos.** Algunos informes (p. ej. dictámenes de auditoras) no traen capa de texto ni imágenes: cada letra es un trazo vectorial. El plugin los tomaba por páginas «en blanco» (o leía solo el logo JPEG) y los daba como **«sin hallazgo» sin avisar**. Ahora una página sin texto con al menos `vec_min_rellenos` (30) rellenos vectoriales se **dibuja** (nuevo `vecrender.py`, Python puro, ≈0,6 s por página a 200 dpi) y esa imagen se manda a la IA. Vale también en PDF mixtos (páginas con texto + páginas dibujadas). Sin servidor de IA, esas páginas quedan como **SIN LEER** y el PDF va a `REVISAR_MANUAL`.
 - Respeta `/Rotate`, baja los dpi si la página es enorme y corta el dibujo a los 120 s. Las imágenes incrustadas (logos, firmas) no se dibujan.
