@@ -638,6 +638,53 @@
   }
   var ctxCleanup = null;
   function closeCtxMenu() { if (ctxCleanup) { ctxCleanup(); ctxCleanup = null; } var m = document.getElementById("ctxmenu"); if (m) m.remove(); }
+  // selector de pasos con búsqueda: lista agrupada por categoría, flechas + Enter, o clic
+  function stepPicker(ev, onPick, extra) {
+    closeCtxMenu();
+    var es = lang === "es", m = h("div", { class: "ctxmenu picker", id: "ctxmenu", role: "menu" });
+    var q = h("input", { type: "search", placeholder: es ? "Buscar paso…" : "Search step…", autocomplete: "off", "aria-label": es ? "Buscar paso" : "Search step" });
+    var list = h("div", { class: "pk-list" }), cur = 0, shown = [];
+    var plugins = S.plugins.filter(function (p) { return p.ok && p.status === "enabled"; });
+    function pick(p) { closeCtxMenu(); onPick(p); }
+    function draw() {
+      clear(list); shown = [];
+      var f = q.value.trim().toLowerCase(), cats = {};
+      plugins.forEach(function (p) {
+        var hay = (p.name + " " + p.id + " " + (p.category || "") + " " + (p.description || "")).toLowerCase();
+        if (!f || f.split(/\s+/).every(function (w) { return hay.indexOf(w) >= 0; })) (cats[p.category || ""] = cats[p.category || ""] || []).push(p);
+      });
+      Object.keys(cats).sort().forEach(function (c) {
+        if (c) list.appendChild(h("div", { class: "pk-cat", text: c }));
+        cats[c].forEach(function (p) {
+          var i = shown.length; shown.push(p);
+          var b = h("button", { class: "mi pk-item" + (i === cur ? " cur" : ""), role: "menuitem", onclick: function (e) { e.stopPropagation(); pick(p); } },
+            h("span", { class: "pk-ic", text: p.icon || "🧩" }),
+            h("span", { class: "pk-tx" }, h("span", { text: p.name }), h("small", { class: "muted", text: (p.description || "").slice(0, 80) })));
+          b.addEventListener("pointermove", function () { if (cur !== i) { cur = i; mark(); } });
+          list.appendChild(b);
+        });
+      });
+      if (!shown.length) list.appendChild(h("div", { class: "muted", style: "padding:10px", text: es ? "Ningún paso coincide." : "No matching step." }));
+    }
+    function mark() {
+      var items = list.querySelectorAll(".pk-item");
+      for (var i = 0; i < items.length; i++) items[i].classList.toggle("cur", i === cur);
+      if (items[cur] && items[cur].scrollIntoView) items[cur].scrollIntoView({ block: "nearest" });
+    }
+    q.addEventListener("input", function () { cur = 0; draw(); });
+    q.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown") { e.preventDefault(); if (shown.length) { cur = (cur + 1) % shown.length; mark(); } }
+      else if (e.key === "ArrowUp") { e.preventDefault(); if (shown.length) { cur = (cur - 1 + shown.length) % shown.length; mark(); } }
+      else if (e.key === "Enter") { e.preventDefault(); if (shown[cur]) pick(shown[cur]); }
+    });
+    m.appendChild(q); m.appendChild(list); draw();
+    (extra || []).forEach(function (it) {
+      var b = h("button", { class: "mi", role: "menuitem", disabled: it.disabled ? "disabled" : null }, h("span", { text: it.label }), it.key ? h("span", { class: "k", text: it.key }) : null);
+      b.addEventListener("click", function (e) { e.stopPropagation(); closeCtxMenu(); if (!it.disabled) it.fn(); });
+      m.appendChild(b);
+    });
+    mountCtx(ev, m); q.focus();
+  }
   function showCtxMenu(ev, items) {
     closeCtxMenu();
     var m = h("div", { class: "ctxmenu", id: "ctxmenu", role: "menu" });
@@ -647,6 +694,9 @@
       b.addEventListener("click", function (e) { e.stopPropagation(); closeCtxMenu(); if (!it.disabled) it.fn(); });
       m.appendChild(b);
     });
+    mountCtx(ev, m);
+  }
+  function mountCtx(ev, m) {
     document.body.appendChild(m);
     var r = m.getBoundingClientRect();
     m.style.left = Math.max(4, Math.min(ev.clientX, window.innerWidth - r.width - 4)) + "px";
@@ -930,6 +980,7 @@
   }
   function wouldCycle(src, tgt) { return src === tgt || !!descendants(tgt)[src]; }
 
+  var addStepAt = function () {};
   function renderGraph(ed, ro) {
     ed = ed || els.editor;
     var w = S.current, def = w.def, edit = !ro && canEdit(), G = ro ? S.gv2 : S.gv;
@@ -1063,12 +1114,14 @@
         G.sel = id; G.selEdge = null; renderMain();
         showCtxMenu(ev, [
           { label: es ? "Duplicar" : "Duplicate", key: "Ctrl+D", disabled: !edit, fn: function () { clipCopy(n); clipPaste(null, n.position); } },
+          { label: es ? "Añadir paso después…" : "Add step after…", disabled: !edit, fn: function () { addStepAt({ clientX: ev.clientX, clientY: ev.clientY }, null, n); } },
           { label: es ? "Copiar" : "Copy", key: "Ctrl+C", fn: function () { clipCopy(n); toast(es ? "Paso copiado. Pegue con clic derecho en el fondo o Ctrl+V." : "Step copied.", null, null, 3500); } },
           "-",
           { label: es ? "Eliminar" : "Delete", key: "Supr", danger: true, disabled: !edit, fn: function () { G.sel = null; removeNode(n); } }]);
       } else {
-        showCtxMenu(ev, [
-          { label: es ? "Pegar aquí" : "Paste here", key: "Ctrl+V", disabled: !edit || !clipLoad(), fn: function () { clipPaste({ x: q.x - NW / 2, y: q.y - NH / 2 }, null); } }]);
+        var pos = { x: q.x - NW / 2, y: q.y - NH / 2 };
+        if (edit) addStepAt(ev, pos, null, [{ label: es ? "Pegar aquí" : "Paste here", key: "Ctrl+V", disabled: !clipLoad(), fn: function () { clipPaste(pos, null); } }]);
+        else showCtxMenu(ev, [{ label: es ? "Pegar aquí" : "Paste here", key: "Ctrl+V", disabled: true, fn: function () {} }]);
       }
     });
     function deleteSelection() {
@@ -1084,32 +1137,31 @@
     }
 
     // barra de herramientas
-    var sel = h("select", { style: "max-width:230px" }, h("option", { value: "", text: "+ " + t("add_step") }));
-    var cats = {};
-    S.plugins.filter(function (p) { return p.ok && p.status === "enabled"; }).forEach(function (p) { (cats[p.category] = cats[p.category] || []).push(p); });
-    Object.keys(cats).sort().forEach(function (c) { var og = h("optgroup", { label: c }); cats[c].forEach(function (p) { og.appendChild(h("option", { value: p.id, text: (p.icon || "") + " " + p.name })); }); sel.appendChild(og); });
-    sel.addEventListener("change", function () {
-      if (!sel.value) return;
-      var p = S.pmap[sel.value], id = newNodeId(), r = svg.getBoundingClientRect();
-      var ref = G.sel && nmap[G.sel] ? nmap[G.sel] : null, pos;
-      if (ref) {   // a la derecha del nodo seleccionado, sin pisar a otros, y conectado a él
-        pos = { x: Math.round(ref.position.x + NW + 70), y: Math.round(ref.position.y) };
-        var busy = function () { return def.nodes.some(function (o) { return Math.abs(o.position.x - pos.x) < NW && Math.abs(o.position.y - pos.y) < NH + 20; }); };
+    // añadir un paso: pos explícita (clic derecho) o a la derecha del seleccionado / centro de la vista; ref = paso al que se conecta
+    function addStep(p, pos, ref) {
+      var id = newNodeId(), r = svg.getBoundingClientRect();
+      var busy = function () { return def.nodes.some(function (o) { return Math.abs(o.position.x - pos.x) < NW && Math.abs(o.position.y - pos.y) < NH + 20; }); };
+      if (!pos) {
+        if (ref) pos = { x: Math.round(ref.position.x + NW + 70), y: Math.round(ref.position.y) };
+        else pos = { x: Math.round((r.width / 2 - G.x) / G.k - NW / 2), y: Math.round((r.height / 2 - G.y) / G.k - NH / 2) };
         while (busy()) pos.y += NH + 30;
-      } else {
-        pos = { x: Math.round((r.width / 2 - G.x) / G.k - NW / 2), y: Math.round((r.height / 2 - G.y) / G.k - NH / 2) };
-        var busy2 = function () { return def.nodes.some(function (o) { return Math.abs(o.position.x - pos.x) < NW && Math.abs(o.position.y - pos.y) < NH + 20; }); };
-        while (busy2()) pos.y += NH + 30;
-      }
+      } else pos = { x: Math.round(pos.x), y: Math.round(pos.y) };
       var node = { id: id, label: uniqueLabel(p.name.replace(/[^\w]+/g, "") || id), type: p.id, config: {}, on_error: "stop", enabled: true, position: pos };
       if (ref) def.edges.push({ source: ref.id, target: id });
       def.nodes.push(node); G.sel = id; G.selEdge = null; S.collapsed[id] = false; touch(); renderMain();
-    });
+    }
+    var addBtn = h("button", { class: "btn sm", text: "+ " + t("add_step"), "aria-haspopup": "menu", onclick: function (ev) {
+      var r0 = ev.currentTarget.getBoundingClientRect(), ref = G.sel && nmap[G.sel] ? nmap[G.sel] : null;
+      stepPicker({ clientX: r0.left, clientY: r0.bottom + 4 }, function (p) { addStep(p, null, ref); });
+    } });
+    addStepAt = function (ev, pos, ref, withPaste) {
+      stepPicker(ev, function (p) { addStep(p, pos, ref); }, withPaste);
+    };
     var tools = ro ? h("div", { class: "gtools" },
       h("button", { class: "btn sm", text: lang === "es" ? "Ajustar" : "Fit", onclick: fit }),
       h("span", { class: "muted", style: "font-size:12px", text: lang === "es" ? "Vista de solo lectura de la ejecución elegida. Pulse un paso para ver su registro." : "Read-only view of the selected run. Click a step to see its log." })) :
       h("div", { class: "gtools" },
-      edit ? sel : null,
+      edit ? addBtn : null,
       h("button", { class: "btn sm", text: lang === "es" ? "Ajustar" : "Fit", onclick: fit }),
       panelBtn("insp", lang === "es" ? "Mostrar u ocultar el panel del paso" : "Show or hide the step panel", lang === "es" ? "☰ Panel" : "☰ Panel"),
       edit ? h("button", { class: "btn sm", text: lang === "es" ? "Ordenar" : "Auto-layout", onclick: function () { autoLayout(true); G.fitted = null; touch(); renderMain(); } }) : null,
@@ -1124,7 +1176,7 @@
         h("button", { class: "btn sm", text: "▶ " + (lang === "es" ? "Desde aquí" : "From here"),
           title: lang === "es" ? "Ejecuta este paso y los siguientes, reutilizando los resultados anteriores" : "Runs this step and the following ones, reusing earlier results",
           onclick: function () { runPartial(G.sel, "from"); } })) : null,
-      h("span", { class: "muted", style: "font-size:12px", text: lang === "es" ? "Un paso nuevo se conecta al nodo seleccionado. Arrastre del punto derecho de un nodo al izquierdo de otro para conectar" : "Drag from a node's right dot to another's left dot to connect" }));
+      h("span", { class: "muted", style: "font-size:12px", text: lang === "es" ? "Clic derecho en el fondo para añadir un paso. Un paso nuevo se conecta al nodo seleccionado. Arrastre del punto derecho de un nodo al izquierdo de otro para conectar" : "Right-click the background to add a step. Drag from a node's right dot to another's left dot to connect" }));
 
     var inspector = h("div", { class: "inspector" });
     if (ro) { /* sin inspector */ }

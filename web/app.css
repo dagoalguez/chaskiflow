@@ -298,3 +298,15 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
   .dk-body { flex-direction: column; } .dk-steps { width: auto; max-height: 40%; border-right: 0; border-bottom: 1px solid var(--border); }
   .logdock { height: 45%; }
 }
+
+/* ---- selector de pasos (botón «+ Añadir paso» y clic derecho en el fondo) ---- */
+.ctxmenu.picker { width: 330px; padding: 6px; }
+.ctxmenu.picker > input { width: 100%; margin-bottom: 4px; }
+.ctxmenu .pk-list { max-height: min(360px, 50vh); overflow: auto; }
+.ctxmenu .pk-cat { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 8px 8px 2px; }
+.ctxmenu .pk-item { justify-content: flex-start; text-align: left; }
+.ctxmenu .pk-item.cur { background: var(--panel2); }
+.ctxmenu .pk-ic { font-size: 18px; width: 24px; text-align: center; flex: none; }
+.ctxmenu .pk-tx { display: flex; flex-direction: column; min-width: 0; }
+.ctxmenu .pk-tx small { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctxmenu.picker > .mi { border-top: 1px solid var(--border); margin-top: 4px; }

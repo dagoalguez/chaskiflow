@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.1 — 2026-10-08
+- **Clic derecho en el fondo del grafo → añadir paso** en ese punto, con un **selector con búsqueda** (escriba para filtrar por nombre, categoría o descripción; flechas ↑↓ + Enter, o clic). El menú conserva «Pegar aquí».
+- **Clic derecho sobre un paso → «Añadir paso después…»**: crea el paso a su derecha y lo conecta.
+- El botón «+ Añadir paso» de la barra usa el mismo selector (reemplaza la lista desplegable larga).
+- Solo interfaz; sin cambios en API ni datos.
+
 ## 0.15.0 — 2026-10-08
 - **Rediseño de Ejecuciones (solo interfaz, sin cambios en el API ni en los datos).** Había dos lugares para ver ejecuciones (panel derecho y pestaña con tabla) y el historial se mostraba «doble». Ahora:
   - **Pestaña «Editor»** (antes «Grafo»): el grafo y el panel del paso, más un **Registro** plegable abajo. Al pulsar «Ejecutar» el grafo se pinta paso a paso (gris → azul girando → verde / rojo) y el Registro lista cada paso con su estado y duración; a la derecha, el detalle del paso activo con sus mensajes en vivo (sigue solo al paso que corre y, al terminar, se queda en el primer error).

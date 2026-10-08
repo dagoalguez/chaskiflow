@@ -40,7 +40,7 @@ try:
         # --- clic derecho en un nodo -> Duplicar
         pg.locator(".gnode", has_text="Dos").click(button="right")
         pg.wait_for_selector("#ctxmenu")
-        check(pg.locator("#ctxmenu .mi").all_inner_texts() == ["Duplicar\nCtrl+D", "Copiar\nCtrl+C", "Eliminar\nSupr"], "menú del nodo: %s" % pg.locator("#ctxmenu .mi").all_inner_texts())
+        check(pg.locator("#ctxmenu .mi").all_inner_texts() == ["Duplicar\nCtrl+D", "Añadir paso después…", "Copiar\nCtrl+C", "Eliminar\nSupr"], "menú del nodo: %s" % pg.locator("#ctxmenu .mi").all_inner_texts())
         pg.screenshot(path=OUT + "k1_menu.png")
         pg.click("#ctxmenu .mi >> text=Duplicar")
         until(lambda: pg.locator(".gnode").count() == 3)

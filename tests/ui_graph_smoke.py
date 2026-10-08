@@ -10,6 +10,13 @@ from playwright.sync_api import sync_playwright
 OUT = os.path.join(sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(), "")
 srv = TestServer(plugin_dirs=[str(ROOT / "plugins")])
 problems = []
+def until(fn, t=8000):
+    import time
+    t0 = time.time()
+    while time.time() - t0 < t / 1000:
+        if fn(): return True
+        time.sleep(0.1)
+    raise AssertionError("until: tiempo agotado")
 def check(c, m):
     print(("OK   " if c else "FAIL ") + m)
     if not c: problems.append(m)
@@ -54,6 +61,22 @@ try:
         tgt = pg.locator(".gnode").nth(0).locator(".gbox").bounding_box()
         pg.mouse.move(out_port["x"] + out_port["width"] / 2, out_port["y"] + out_port["height"] / 2); pg.mouse.down(); pg.mouse.move(tgt["x"] + 40, tgt["y"] + 20, steps=8); pg.mouse.up()
         pg.wait_for_selector(".toast"); check("ciclo" in pg.inner_text(".toast"), "ciclo rechazado")
+        # clic derecho en el fondo: añadir paso con el selector con búsqueda
+        n_nodes = pg.locator(".gnode").count()
+        pg.locator(".gsvg").click(button="right", position={"x": 640, "y": 420})
+        pg.wait_for_selector(".picker input"); check(pg.locator(".picker .pk-item").count() > 3, "el selector lista los pasos disponibles")
+        pg.fill(".picker input", "csv"); check(pg.locator(".picker .pk-item").count() >= 1, "la búsqueda filtra")
+        pg.keyboard.press("Enter"); until(lambda: pg.locator(".gnode").count() == n_nodes + 1)
+        check(True, "clic derecho → Enter añade el paso (%d → %d)" % (n_nodes, n_nodes + 1))
+        # clic derecho sobre un nodo: añadir paso después (conectado)
+        n_edges0 = pg.locator(".gedge-hit").count()
+        pg.locator(".gnode").nth(0).click(button="right"); pg.click("#ctxmenu .mi >> text=Añadir paso después")
+        pg.fill(".picker input", "csv"); pg.locator(".picker .pk-item").first.click()
+        until(lambda: pg.locator(".gnode").count() == n_nodes + 2 and pg.locator(".gedge-hit").count() == n_edges0 + 1)
+        check(True, "«Añadir paso después» crea el paso y lo conecta")
+        pg.click(".gtools >> text=Quitar"); until(lambda: pg.locator(".gnode").count() == n_nodes + 1)   # quita el último (seleccionado)
+        pg.locator(".gnode").last.locator(".gbox").click(); pg.click(".gtools >> text=Quitar"); until(lambda: pg.locator(".gnode").count() == n_nodes)
+        pg.wait_for_timeout(1900)
         # borrar arista seleccionada
         n_edges = pg.locator(".gedge-hit").count()
         pg.locator(".gedge-hit").last.dispatch_event("click")

@@ -26,7 +26,7 @@ try:
         pg.click("text=+ Nuevo"); pg.fill(".dialog input", "Mi prueba"); pg.keyboard.press("Enter")
         pg.wait_for_selector(".wf-bar")
         for plug in ("hello_world", "export_csv"):
-            pg.select_option(".gtools select", plug); pg.wait_for_timeout(250)
+            pg.click(".gtools >> text=Añadir paso"); pg.fill(".picker input", plug); pg.keyboard.press("Enter"); pg.wait_for_timeout(250)
         pg.wait_for_selector(".inspector .card[data-node]")
         card = pg.locator(".inspector .card[data-node]")
         card.locator(".deps label.chk", has_text="Holamundo").locator("input").check()
