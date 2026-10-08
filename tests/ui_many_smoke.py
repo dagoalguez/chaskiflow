@@ -22,6 +22,8 @@ try:
         pg.goto(srv.base); pg.fill("#lg-user", "admin"); pg.fill("#lg-pass", "clave-segura-1"); pg.click("button[type=submit]")
         pg.wait_for_selector(".wf-item")
         check(pg.locator(".wf-item:visible").count() == 12, "barra ancha: 12 workflows")
+        check(pg.locator(".sidebar .sb-find:visible").count() == 0 and pg.locator(".sidebar .sb-imp:visible").count() == 1, "barra ancha: sin botón 🔍 (hay cuadro de búsqueda) y con Importar")
+        pg.screenshot(path=OUT + "m0_ancha.png")
         pg.fill(".sb-search input", "sucurs")
         check(pg.locator(".wf-item:visible").count() == 1, "el buscador filtra la lista")
         pg.fill(".sb-search input", "zzz"); check("Ningún workflow" in pg.inner_text(".sidebar .list"), "mensaje si nada coincide")

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.16.2 — 2026-10-08
+- Corrección (0.16.1): en la barra ancha aparecía también el botón 🔍 y empujaba «Importar» fuera de la vista. Ahora el 🔍 solo existe en la barra reducida. La prueba visual lo verifica.
+
 ## 0.16.1 — 2026-10-08
 - **Muchos workflows en la barra lateral.** Barra ancha: **cuadro «Buscar workflow…»** (filtra por nombre o dueño). Barra reducida: ya no lista todos; muestra **solo el abierto y los 5 últimos usados** (se recuerdan en este navegador) y un botón **🔍** que abre un **selector con búsqueda** con todos los workflows (flechas ↑↓ + Enter; sin búsqueda aparecen primero los recientes).
 - Prueba nueva `tests/ui_many_smoke.py`.
