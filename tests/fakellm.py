@@ -96,8 +96,14 @@ class FakeLLM:
                         if data[i + 4:i + 8] == b"IDAT":
                             raw += data[i + 8:i + 8 + ln]
                         i += 12 + ln
-                    v = zlib.decompress(raw)[1]
-                    words = {200: ["fusión"], 150: ["escisión", "Fusión"]}.get(v, [])
+                    z = zlib.decompress(raw)
+                    v = z[1]
+                    h = struct.unpack(">I", data[20:24])[0]
+                    if v == 255 and z.count(0) > h:                # página dibujada desde vectores: blanca con trazos negros
+                        S.vector_images = getattr(S, "vector_images", 0) + 1
+                        words = ["fusión"]
+                    else:
+                        words = {200: ["fusión"], 150: ["escisión", "Fusión"]}.get(v, [])
                 words = [w for w in words if w in text or w.lower() in text]
                 self.reply(S.wrap(json.dumps({"encontradas": words, "contexto": "…aprobó la %s…" % words[0] if words else ""}, ensure_ascii=False)))
 

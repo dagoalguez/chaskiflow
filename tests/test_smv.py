@@ -149,6 +149,119 @@ def write_pdfs(folder):
     (Path(folder) / "Descargas" / "BETA" / "2025" / "2025_BETA.pdf").write_bytes(b"esto no es un pdf")
 
 
+
+class VectorPages(Base):
+    """PDF cuyo texto está convertido a contornos (informes de auditoría): sin capa de texto y sin imágenes que leer.
+    Antes se tomaban por «en blanco» y quedaban como «sin hallazgo» sin avisar."""
+
+    CASES = {
+        ("GAMA", "2021"): [("vector", 60)],                                              # todo en contornos
+        ("GAMA", "2022"): [("texto", ["Memoria anual", "Nada que informar este año."]), ("vector", 60)],   # mixto
+        ("GAMA", "2023"): [("vector_logo", 60)],                                         # con logo JPEG grande
+        ("GAMA", "2024"): [("vector", 5), ("texto", ["Solo un sello pequeño en la portada"])],  # pocos trazos = sello
+    }
+
+    def setUp(self):
+        self.folder = self.out()
+        for (emp, year), pages in self.CASES.items():
+            d = Path(self.folder) / "Descargas" / emp / year
+            d.mkdir(parents=True, exist_ok=True)
+            (d / ("%s_%s.pdf" % (year, emp))).write_bytes(make_pdf(pages))
+
+    def scan(self, llm=None, **kw):
+        cfg = {"folder": str(Path(self.folder) / "Descargas"), "output_dir": self.folder}
+        if llm is not None:
+            cfg.update(base_url=llm.base, model="lfm2.5-vl-1.6b")
+        cfg.update(kw)
+        r = self.run_node("pdf_keyword_scan", cfg)
+        self.assertEqual(r["status"], "ok", r["error"])
+        return {(x["empresa"], x["anio"]): x for x in r["result"]["rows"]}, r["result"]
+
+    def test_vector_pages_are_drawn_and_read_by_the_model(self):
+        with FakeLLM() as llm:
+            b, res = self.scan(llm)
+            imgs = list(llm.images)
+            n_vec = getattr(llm, "vector_images", 0)
+        x = b[("GAMA", "2021")]
+        self.assertEqual(x["identificado"], "sí")
+        self.assertEqual(x["metodo"], "ia")
+        self.assertEqual(x["paginas_leidas_ia"], 1)
+        self.assertEqual(x["paginas_sin_leer"], 0)
+        self.assertEqual(x["deteccion"], "IA")
+        self.assertEqual(set(imgs), {"image/png"})                                      # se mandó el dibujo, no un JPEG
+        self.assertEqual(n_vec, 3)                                                       # 2021, 2022 (pág. 2) y 2023
+        self.assertTrue((Path(self.folder) / "IDENTIFICADOS" / "GAMA" / "2021" / "2021_GAMA.pdf").is_file())
+
+    def test_mixed_pdf_still_reads_its_drawn_pages(self):
+        with FakeLLM() as llm:
+            b, _ = self.scan(llm)
+        x = b[("GAMA", "2022")]
+        self.assertEqual(x["identificado"], "sí")                                       # el hallazgo estaba en la página dibujada
+        self.assertEqual(x["metodo"], "texto+ia")
+        self.assertEqual(x["paginas_con_texto"], 1)
+        self.assertEqual(x["paginas_leidas_ia"], 1)
+        self.assertEqual(x["paginas_hallazgo"], "2")
+
+    def test_a_big_logo_does_not_hide_the_drawn_text(self):
+        with FakeLLM() as llm:
+            b, _ = self.scan(llm)
+        x = b[("GAMA", "2023")]
+        self.assertEqual(x["identificado"], "sí")
+        self.assertIn("fusión", x["palabras"])
+        self.assertNotIn("reorganización", x["palabras"])                               # el JPEG del logo daría esta palabra
+
+    def test_few_strokes_are_a_stamp_not_text(self):
+        with FakeLLM() as llm:
+            b, _ = self.scan(llm)
+            calls = llm.vision_calls
+        x = b[("GAMA", "2024")]
+        self.assertEqual(x["identificado"], "no")
+        self.assertEqual(x["paginas_leidas_ia"], 0)
+        self.assertEqual(x["paginas_sin_leer"], 0)
+        self.assertEqual(calls, 3)
+
+    def test_without_ai_drawn_pages_are_flagged_not_silently_skipped(self):
+        b, res = self.scan()
+        for key in (("GAMA", "2021"), ("GAMA", "2022"), ("GAMA", "2023")):
+            self.assertEqual(b[key]["identificado"], "no")
+            self.assertEqual(b[key]["paginas_sin_leer"], 1, key)
+            self.assertTrue((Path(self.folder) / "REVISAR_MANUAL" / key[0] / key[1]).is_dir(), key)
+        self.assertEqual(b[("GAMA", "2024")]["paginas_sin_leer"], 0)
+        self.assertEqual(res["stats"]["no_leidos"], 3)
+
+    def test_pdftext_helpers(self):
+        import io
+        sys.path.insert(0, str(PLUGINS / "pdf_keyword_scan"))
+        import pdftext
+        import vecrender
+        path = Path(self.folder) / "v.pdf"
+        path.write_bytes(make_pdf([("vector", 60)]))
+        page = pdftext.open_pdf(path).pages[0]
+        self.assertEqual(pdftext.vector_fills(page), 60)
+        mime, data = pdftext.render_png(page, 100)
+        self.assertEqual(mime, "image/png")
+        self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
+        w, h, pix, _ = vecrender.render_page(page, 100)
+        self.assertEqual((w, h), (850, 1169))
+        self.assertTrue(sum(1 for b in pix if b < 128) > 60 * 20)                       # los cuadros se dibujaron
+        self.assertEqual(pix[0], 255)                                                    # el fondo es blanco
+
+    def test_drawing_has_a_time_limit_and_a_size_cap(self):
+        sys.path.insert(0, str(PLUGINS / "pdf_keyword_scan"))
+        import pdftext
+        import vecrender
+        path = Path(self.folder) / "v2.pdf"
+        path.write_bytes(make_pdf([("vector", 1200)]))
+        page = pdftext.open_pdf(path).pages[0]
+        with self.assertRaises(vecrender.RenderTimeout):
+            vecrender.render_page(page, 100, max_seconds=-1)
+        with self.assertRaises(ValueError) as cm:
+            pdftext.render_png(page, 100, max_seconds=-1)
+        self.assertIn("tardó demasiado", str(cm.exception))
+        w, h, _pix, _ = vecrender.render_page(page, 400, max_pixels=1000000)           # 400 dpi pediría 15 Mpx
+        self.assertTrue(w * h <= 1000000 * 1.02, (w, h))
+
+
 class Scan(Base):
     def scan(self, folder, llm=None, **kw):
         cfg = {"folder": str(Path(folder) / "Descargas"), "output_dir": folder}

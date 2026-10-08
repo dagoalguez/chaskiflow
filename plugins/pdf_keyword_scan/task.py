@@ -348,14 +348,21 @@ def scan_pdf(item, terms, terms_txt, vis, opt, ctx, deadline):
                     h["contexto"].extend(frag[:1])
             continue
         try:
+            nvec = pdftext.vector_fills(page)
+        except Exception:
+            nvec = 0
+        vec = nvec >= opt["vec_min"]                 # texto convertido a contornos: sin capa de texto, pero la página SÍ tiene texto
+        try:
             scanned = pdftext.has_image(page)
         except Exception:
             scanned = True
-        if not scanned:                              # página en blanco o solo con dibujos: no hay nada que leer
+        if not scanned and not vec:                  # página en blanco o solo con dibujos: no hay nada que leer
             res["vacias"] = res.get("vacias", 0) + 1
             continue
         res["sin_texto"] += 1
-        if pdf_con_texto:                            # PDF de texto: las páginas sin texto (portada, firma) no se mandan a IA
+        if vec:
+            res["vectoriales"] = res.get("vectoriales", 0) + 1
+        if pdf_con_texto and not vec:                # PDF de texto: las páginas sin texto (portada, firma) no se mandan a IA
             continue
         if vis is None or opt.get("ia_caida"):
             res["no_leidas"] += 1
@@ -366,7 +373,10 @@ def scan_pdf(item, terms, terms_txt, vis, opt, ctx, deadline):
                 res["notas"].insert(0, "se alcanzó «Máx. páginas por PDF para la IA» (%d)" % opt["ia_max_paginas"])
             continue
         try:
-            mime, data = pdftext.page_image(page)
+            if vec:                                  # se dibuja la página y se manda ese dibujo (no el logo JPEG que pueda traer)
+                mime, data = pdftext.render_png(page, opt["vector_dpi"])
+            else:
+                mime, data = pdftext.page_image(page)
         except ValueError as e:
             res["no_leidas"] += 1
             res["formatos"] = res.get("formatos", 0) + 1
@@ -437,11 +447,13 @@ def run(config, ctx):
         else:
             ctx.log("AVISO: sin URL del servidor de IA; los PDF sin texto (escaneados) NO se podrán leer")
     opt = {"min_chars": int(config.get("min_chars") or 25), "ia_max_paginas": int(config.get("ia_max_paginas") or 60),
-           "max_pdf_seconds": float(config.get("max_pdf_seconds") or 600),
+           "vec_min": int(config.get("vec_min_rellenos") or 30), "vector_dpi": int(config.get("vector_dpi") or 200),
+           "max_pdf_seconds": float(config.get("max_pdf_seconds") or 1800),
            "guardar_texto": config.get("guardar_texto") is not False}
     ncols = max(0, min(int(config.get("texto_columnas") if config.get("texto_columnas") is not None else 5), 20))
     csize = max(1000, min(int(config.get("texto_max_celda") or 30000), 32000))
-    cfg = {"gt": opt["guardar_texto"], "t": [t for t, _ in terms], "ia": bool(vis), "m": vis.model if vis else "", "min": opt["min_chars"], "iamax": opt["ia_max_paginas"]}
+    cfg = {"gt": opt["guardar_texto"], "t": [t for t, _ in terms], "ia": bool(vis), "m": vis.model if vis else "", "min": opt["min_chars"], "iamax": opt["ia_max_paginas"],
+           "v": 2, "vec": opt["vec_min"], "dpi": opt["vector_dpi"]}     # "v": 2 invalida resultados guardados antes de leer páginas vectoriales
     cfgh = _cfg_hash(cfg)
     cache_path = os.path.join(out_dir, "_cache_escaneo.json")
     cache = {}
@@ -489,8 +501,9 @@ def run(config, ctx):
                 _atomic_json(cache_path, cache)
         hits = res["hits"]
         if not res["error"] and not res.get("_reutilizado"):
-            ctx.log("%s %s: %d pág. · %d con texto · %d escaneadas (%d leídas con IA)%s%s%s → %s" % (
+            ctx.log("%s %s: %d pág. · %d con texto · %d sin texto (%d leídas con IA)%s%s%s%s → %s" % (
                 it["empresa"], it["anio"], res["paginas"], res["con_texto"], res["sin_texto"], res["leidas_ia"],
+                " · %d con texto en contornos (se dibujan)" % res["vectoriales"] if res.get("vectoriales") else "",
                 " · %d en blanco" % res["vacias"] if res.get("vacias") else "",
                 " · %d SIN LEER" % res["no_leidas"] if res["no_leidas"] else "",
                 (" · motivo: " + "; ".join(res["notas"][:3])) if res["no_leidas"] and res["notas"] else "",
@@ -502,7 +515,10 @@ def run(config, ctx):
             metodo, ident = "error", ""
             stats["errores"] += 1
         else:
-            metodo = "texto" if res.get("tipo") == "texto" else ("ia" if res["leidas_ia"] else "sin texto")
+            if res.get("tipo") == "texto":
+                metodo = "texto+ia" if res["leidas_ia"] else "texto"
+            else:
+                metodo = "ia" if res["leidas_ia"] else "sin texto"
             ident = "sí" if hits else "no"
         no_leido = (not res["error"]) and res["no_leidas"] > 0 and not hits
         copiado = ""

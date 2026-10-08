@@ -1,4 +1,5 @@
-"""Diagnóstico de un PDF: por página, cuánto texto trae y qué imagen tiene (y, si es JBIG2, qué tipos de segmento).
+"""Diagnóstico de un PDF: por página, cuánto texto trae, cuántos rellenos vectoriales (texto en contornos) y qué imagen tiene
+(y, si es JBIG2, qué tipos de segmento).
 Uso:  python plugins\\pdf_keyword_scan\\probar_pdf.py archivo.pdf [maxpaginas]
 Solo lee el archivo; no envía nada a ningún lado."""
 
@@ -77,8 +78,14 @@ def main(argv):
                 imgs.append(d)
         except Exception as e:  # noqa: BLE001
             imgs.append("error leyendo imágenes: %s" % e)
-        print("  p. %d: %d caracteres de texto · imágenes: %s" % (i + 1, len(t), "; ".join(imgs) or "ninguna"))
-    print("Páginas con texto (≥25 caracteres): %d de %d → %s" % (con, len(pages), "PDF de TEXTO (no usa IA)" if con else "PDF ESCANEADO (iría a la IA)"))
+        try:
+            nv = pdftext.vector_fills(pg)
+        except Exception:  # noqa: BLE001
+            nv = 0
+        marca = " → VECTORIAL (se dibuja y va a la IA)" if (nv >= 30 and len(t) < 25) else ""
+        print("  p. %d: %d caracteres de texto · %d rellenos vectoriales%s · imágenes: %s" % (
+            i + 1, len(t), nv, marca, "; ".join(imgs) or "ninguna"))
+    print("Páginas con texto (≥25 caracteres): %d de %d → %s" % (con, len(pages), "PDF de TEXTO (no usa IA salvo páginas dibujadas)" if con else "PDF SIN TEXTO (iría a la IA)"))
     return 0
 
 
