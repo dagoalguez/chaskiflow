@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.16.5 — 2026-10-08
+- Si el **panel del paso** está oculto, **elegir un nodo lo abre** (clic en el nodo, clic derecho sobre él o añadir un paso nuevo). Ocultarlo a mano sigue funcionando y se recuerda.
+
 ## 0.16.4 — 2026-10-08
 - **El Registro del Editor arranca plegado** (ocupaba espacio del grafo). Si lo despliega, se queda así durante la sesión; ejecutar ya no lo abre solo, pero su cabecera plegada muestra el estado de la corrida y el paso en curso (▶ nombre). En la pestaña Ejecuciones arranca abierto (es su detalle) y se recuerda aparte.
 - Pruebas visuales ajustadas.

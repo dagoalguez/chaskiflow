@@ -51,6 +51,11 @@ try:
         pg.click(".topbar .panel-toggle"); pg.wait_for_selector(".wf-item"); pg.click(".wf-item"); pg.wait_for_selector(".gsvg")
         pg.click(".gtools .panel-toggle"); pg.wait_for_timeout(150)
         check(pg.eval_on_selector(".sidebar", "e => e.getBoundingClientRect().width") > 200 and shown(pg, ".inspector"), "se vuelven a mostrar")
+        # con el panel del paso oculto, elegir un nodo lo abre
+        pg.click(".gtools .panel-toggle"); pg.wait_for_timeout(150)
+        check(not shown(pg, ".inspector"), "panel del paso oculto de nuevo")
+        pg.locator(".gnode").first.locator(".gbox").click(); pg.wait_for_timeout(250)
+        check(shown(pg, ".inspector") and pg.locator(".inspector .card").count() >= 1, "clic en un nodo abre el panel del paso si estaba oculto")
         # el registro inferior se pliega y se despliega
         check(pg.locator(".dk-body").count() == 0, "el Registro arranca plegado en el Editor")
         pg.click(".dk-head"); pg.wait_for_timeout(150)

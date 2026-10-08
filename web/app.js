@@ -1040,6 +1040,8 @@
   function wouldCycle(src, tgt) { return src === tgt || !!descendants(tgt)[src]; }
 
   var addStepAt = function () {};
+  // al elegir un paso se abre el panel del paso si estaba oculto
+  function showInsp() { if (panelHidden("insp")) setPanelHidden("insp", false); }
   function renderGraph(ed, ro) {
     ed = ed || els.editor;
     var w = S.current, def = w.def, edit = !ro && canEdit(), G = ro ? S.gv2 : S.gv;
@@ -1102,7 +1104,7 @@
         }
         function up() {
           g.removeEventListener("pointermove", mv); g.removeEventListener("pointerup", up); g.removeEventListener("pointercancel", up);
-          if (moved) { touch(); } else if (ro) { pickStep(n.id); } else { G.sel = n.id; G.selEdge = null; S.collapsed[n.id] = false; renderMain(); }
+          if (moved) { touch(); } else if (ro) { pickStep(n.id); } else { showInsp(); G.sel = n.id; G.selEdge = null; S.collapsed[n.id] = false; renderMain(); }
         }
         g.addEventListener("pointermove", mv); g.addEventListener("pointerup", up); g.addEventListener("pointercancel", up);
       });
@@ -1170,7 +1172,7 @@
       if (gn) {
         var id = Object.keys(nodeEls).filter(function (k) { return nodeEls[k] === gn; })[0], n = nmap[id];
         if (!n) return;
-        G.sel = id; G.selEdge = null; renderMain();
+        showInsp(); G.sel = id; G.selEdge = null; renderMain();
         showCtxMenu(ev, [
           { label: es ? "Duplicar" : "Duplicate", key: "Ctrl+D", disabled: !edit, fn: function () { clipCopy(n); clipPaste(null, n.position); } },
           { label: es ? "Añadir paso después…" : "Add step after…", disabled: !edit, fn: function () { addStepAt({ clientX: ev.clientX, clientY: ev.clientY }, null, n); } },
@@ -1207,7 +1209,7 @@
       } else pos = { x: Math.round(pos.x), y: Math.round(pos.y) };
       var node = { id: id, label: uniqueLabel(p.name.replace(/[^\w]+/g, "") || id), type: p.id, config: {}, on_error: "stop", enabled: true, position: pos };
       if (ref) def.edges.push({ source: ref.id, target: id });
-      def.nodes.push(node); G.sel = id; G.selEdge = null; S.collapsed[id] = false; touch(); renderMain();
+      def.nodes.push(node); showInsp(); G.sel = id; G.selEdge = null; S.collapsed[id] = false; touch(); renderMain();
     }
     var addBtn = h("button", { class: "btn sm", text: "+ " + t("add_step"), "aria-haspopup": "menu", onclick: function (ev) {
       var r0 = ev.currentTarget.getBoundingClientRect(), ref = G.sel && nmap[G.sel] ? nmap[G.sel] : null;
