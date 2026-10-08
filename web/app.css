@@ -338,3 +338,13 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .shell.hide-sb .sidebar .wf-item:not(.rc) { display: none; }
 .shell.hide-sb .sidebar .wf-item.rc:not(.active) { opacity: .85; }
 .ctxmenu .pk-ic .dot { display: inline-block; }
+
+/* ---- Acerca de ---- */
+.about-head { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 12px; text-align: center; }
+.about-head .about-logo { width: 56px; height: 56px; }
+.about-name { font-weight: 700; font-size: 20px; }
+.about-desc { text-align: center; margin-bottom: 12px; }
+.about-table { width: 100%; } .about-table td { padding: 8px 10px; vertical-align: top; }
+.about-table td:first-child { width: 120px; }
+.about-table a { color: var(--accent); }
+.about-fine { margin-top: 12px; font-size: 12px; text-align: center; }

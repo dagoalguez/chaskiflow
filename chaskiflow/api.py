@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-from . import __author__, __contributions__, __license__, __version__
+from . import __author__, __contributions__, __license__, __repository__, __version__
 from . import auth as authmod
 from . import g1g_import
 from . import plugin_admin as padm
@@ -98,7 +98,7 @@ def user_labels(db):
 @route("GET", "/api/health", "public")
 def health(req):
     return {"ok": True, "version": __version__, "needs_setup": req.app.auth.count_users() == 0,
-            "author": __author__, "contributions": __contributions__, "license": __license__}
+            "author": __author__, "contributions": __contributions__, "license": __license__, "repository": __repository__}
 
 
 @route("POST", "/api/setup", "public")

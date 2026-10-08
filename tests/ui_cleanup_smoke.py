@@ -50,6 +50,7 @@ try:
         check("Diego Guevara B." in pg.inner_text(".about-side"), "créditos al pie de la barra lateral")
         pg.click(".about-side"); pg.wait_for_selector("text=Acerca de ChaskiFlow")
         check("Contribuciones" in pg.inner_text(".dialog") and "Claude" in pg.inner_text(".dialog"), "diálogo Acerca de con autor y contribuciones")
+        check("Repositorio" in pg.inner_text(".dialog") and "github.com/dagoalguez/chaskiflow" in pg.inner_text(".dialog") and pg.locator(".dialog a[href='https://github.com/dagoalguez/chaskiflow']").count() == 1, "Acerca de muestra el repositorio con enlace")
         pg.screenshot(path=OUT + "c0_acerca.png"); pg.click(".dialog .x")
         pg.screenshot(path=OUT + "c1_lateral.png")
         # cerrar workflow

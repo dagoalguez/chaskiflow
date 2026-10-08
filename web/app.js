@@ -175,7 +175,7 @@
   function start() {
     applyTheme();
     api("GET", "/api/health").then(function (d) {
-      S.about = { version: d.version, author: d.author, contributions: d.contributions, license: d.license };
+      S.about = { version: d.version, author: d.author, contributions: d.contributions, license: d.license, repository: d.repository };
       if (d.needs_setup) return showLogin(true);
       return api("GET", "/api/me").then(function (m) { S.user = m.user; boot(); }, function () { showLogin(false); });
     }, function (e) { showLogin(false, e.message); });
@@ -316,17 +316,23 @@
     return h("button", { class: "about-line " + cls, text: aboutText(), title: lang === "es" ? "Acerca de ChaskiFlow" : "About ChaskiFlow", onclick: aboutDialog });
   }
   function aboutDialog() {
-    var a = S.about || {}, es = lang === "es";
-    dialog(es ? "Acerca de ChaskiFlow" : "About ChaskiFlow", h("div", null,
-      h("div", { style: "display:flex;align-items:center;gap:12px;margin-bottom:10px" },
+    var a = S.about || {}, es = lang === "es", repo = a.repository || "github.com/dagoalguez/chaskiflow";
+    dialog(es ? "Acerca de ChaskiFlow" : "About ChaskiFlow", h("div", { class: "about-box" },
+      h("div", { class: "about-head" },
         logoSvg("about-logo"),
-        h("div", null, h("div", { style: "font-weight:600;font-size:16px", text: "ChaskiFlow" }), h("div", { class: "muted", text: "v" + (a.version || "") }))),
-      h("div", { text: es ? "Plataforma de workflows con plugins." : "Workflow platform with plugins." }),
-      h("table", { style: "margin-top:10px" }, h("tbody", null,
+        h("div", { class: "about-name", text: "ChaskiFlow" }),
+        h("div", { class: "muted", text: (es ? "Versión " : "Version ") + (a.version || "") })),
+      h("div", { class: "about-desc", text: es
+        ? "Plataforma de workflows con plugins: arme flujos de tareas conectadas y agregue nuevas tareas con solo una carpeta. Servidor web propio, en Python puro, sin instalar nada."
+        : "Workflow platform with plugins: wire tasks together and add new ones by dropping in a folder. Its own web server, in pure Python, with nothing to install." }),
+      h("table", { class: "about-table" }, h("tbody", null,
         h("tr", null, h("td", { class: "muted", text: es ? "Autor" : "Author" }), h("td", { text: a.author || "Diego Guevara B." })),
-        h("tr", null, h("td", { class: "muted", text: es ? "Contribuciones" : "Contributions" }), h("td", { text: a.contributions || "Claude" })),
-        h("tr", null, h("td", { class: "muted", text: es ? "Licencia" : "License" }), h("td", { text: (a.license || "Apache-2.0") + (es ? " (código abierto)" : " (open source)") })))),
-      h("div", { class: "muted", style: "margin-top:10px;font-size:12px", text: es
+        h("tr", null, h("td", { class: "muted", text: es ? "Contribuciones" : "Contributions" }),
+          h("td", { text: es ? (a.contributions || "Claude") + " (Anthropic) ayudó con el código y la documentación." : (a.contributions || "Claude") + " (Anthropic) helped with the code and documentation." })),
+        h("tr", null, h("td", { class: "muted", text: es ? "Licencia" : "License" }), h("td", { text: (a.license || "Apache-2.0") + (es ? " (código abierto)" : " (open source)") })),
+        h("tr", null, h("td", { class: "muted", text: es ? "Repositorio" : "Repository" }),
+          h("td", null, h("a", { href: "https://" + repo, target: "_blank", rel: "noopener noreferrer", text: repo }))))),
+      h("div", { class: "muted about-fine", text: es
         ? "Copyright 2026 Diego Guevara B. Licenciado bajo la Licencia Apache, Versión 2.0. Los archivos LICENSE y NOTICE están en la carpeta del programa y deben conservarse al redistribuirlo."
         : "Copyright 2026 Diego Guevara B. Licensed under the Apache License, Version 2.0. The LICENSE and NOTICE files in the program folder must be kept when redistributing." })));
   }

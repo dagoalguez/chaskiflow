@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.16.3 — 2026-10-08
+- **«Acerca de ChaskiFlow»** con el mismo formato que quipullm: logo, nombre y versión centrados, descripción, y tabla **Autor / Contribuciones / Licencia / Repositorio** (enlace a github.com/dagoalguez/chaskiflow). `/api/health` devuelve también `repository`.
+
 ## 0.16.2 — 2026-10-08
 - Corrección (0.16.1): en la barra ancha aparecía también el botón 🔍 y empujaba «Importar» fuera de la vista. Ahora el 🔍 solo existe en la barra reducida. La prueba visual lo verifica.
 
