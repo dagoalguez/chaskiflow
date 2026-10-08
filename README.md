@@ -2,36 +2,51 @@
 
 # ChaskiFlow
 
-Por **Diego Guevara B.** · Contribuciones: Claude · Licencia Apache-2.0
+By **Diego Guevara B.** · Contributions: Claude · License: Apache-2.0
 
-Plataforma de workflows con **plugins**: armas flujos de tareas (nodos conectados), y quien
-quiera una tarea nueva solo agrega una carpeta a `plugins/`, sin tocar el núcleo.
+A workflow platform built around **plugins**. You wire tasks together as connected nodes, and anyone who
+needs a new kind of task just drops a folder into `plugins/` — no changes to the core.
 
-**Solo librería estándar de Python.** Sin pip, sin npm, sin binarios, sin servicios.
+**Python standard library only.** No pip, no npm, no binaries, no services. The web UI is plain
+JavaScript (nothing to compile, no CDN), so it works on locked-down networks where package registries and
+binary downloads are blocked.
 
-> Estado: **v0.6.2** — servidor web multiusuario por LAN, interfaz, plugins con aprobación del
-> administrador, claves, historial y **paquete de noticias** (leer medios, recurrencia, Outlook).
-> Incluye **editor visual de nodos** (pestaña Editor; la pestaña Ejecuciones muestra el historial con el grafo de cada corrida). Incluye **programación horaria** (diaria por días, o cada N minutos; menú ⋯ → Programar). Incluye **importador de G1G**, plantilla y validador de plugins. Ejecución parcial desde el grafo (este paso / hasta aquí / desde aquí). Repositorio en GitHub. Ver `LIMITATIONS.md`.
+> Status: **v0.15** — multi-user web server, visual node editor, run history, admin-approved plugins,
+> keys, hourly scheduling, and bundled example workflows (news digest, branch lookup with a local LLM,
+> SMV financial statements). The UI is in Spanish (with an English switch); the docs under `docs/` are
+> currently in Spanish. See [`LIMITATIONS.md`](LIMITATIONS.md) for what is not covered.
 
-## Servidor web (equipo en red local)
+## Run the web server
 
 ```
 python servidor.py
 ```
 
-Abra `http://127.0.0.1:8000` (el servidor imprime también las direcciones de la LAN). La primera vez
-pide crear la cuenta del administrador. Los datos viven en `data/app.db` (respaldo = copiar el archivo).
-Si otros equipos no entran, permita el puerto 8000 en el Firewall de Windows. Ajustes opcionales en
-`config.json` (se crea solo): `host`, `port`, `data_dir`, `plugin_dirs`, `max_concurrent_runs`, `scheduler_enabled`, `scheduler_tick_seconds`, etc.
+Open `http://127.0.0.1:8000`. The first time, it asks you to create the administrator account. Data lives
+in a single SQLite file, `data/app.db` (backup = copy that file).
 
-- **Roles**: admin (todo, instala/aprueba plugins), editor (crea y ejecuta), viewer (solo ve).
-- **Compartir**: cada workflow tiene dueño; acceso por persona o por todo el equipo (ver / ejecutar / editar).
-- **Plugins**: solo el admin los habilita; si el código de un plugin cambia en disco, queda bloqueado hasta reaprobarlo.
-- **Claves** (antes «secretos»): propias o globales (admin); los pasos los usan con `{{secret.nombre}}` y se enmascaran en los registros.
-- **Programación**: el servidor mismo dispara las ejecuciones (hora de esa PC, permisos de quien la crea). La PC debe estar encendida y sin suspensión; si estaba apagada a la hora, esa ejecución se omite.
-- **Guardado automático**, papelera con deshacer, aviso si dos personas editan a la vez, ES/EN, claro/oscuro.
+**By default the server is only reachable from the same computer.** To share it with your local network
+(LAN), start it with:
 
-## Probarlo por consola (2 minutos)
+```
+python servidor.py --share
+```
+
+It then prints the LAN addresses other computers can use. If they cannot connect, allow the port in your
+firewall (e.g. Windows Defender Firewall). Traffic is plain HTTP, so only share it on a network you trust.
+`--port 9000` changes the port. Other optional settings live in `config.json` (created automatically):
+`port`, `data_dir`, `plugin_dirs`, `max_concurrent_runs`, `scheduler_enabled`, `scheduler_tick_seconds`, etc.
+
+- **Roles**: admin (everything, installs/approves plugins), editor (creates and runs), viewer (read-only).
+- **Sharing**: every workflow has an owner; access can be granted per person or to the whole team (view / run / edit).
+- **Plugins**: only an admin can enable them; if a plugin's code changes on disk it stays blocked until re-approved.
+- **Keys** (formerly "secrets"): personal or global (admin); steps use them as `{{secret.name}}` and they are masked in logs.
+- **Editor tab**: node graph, step inspector, and a collapsible live **Log** panel. Right-click the canvas to add a step (with search); right-click a step to add one after it, copy, duplicate or delete.
+- **Runs tab**: list of past runs on the left; the selected run's graph (read-only, colored by status) and its step-by-step log on the right. Partial runs ("this step", "up to here", "from here") are supported.
+- **Scheduling**: the server itself triggers runs (that PC's clock, the creator's permissions). The PC must be on and not suspended; a run missed while it was off is skipped.
+- **Autosave**, trash with undo, a warning when two people edit at once, ES/EN, light/dark, collapsible sidebar.
+
+## Try it from the console (2 minutes)
 
 ```
 python run_workflow.py --list-plugins
@@ -39,29 +54,28 @@ python run_workflow.py examples/hola_reporte.json --var carpeta=./salida
 python tests/run_all.py
 ```
 
-Requiere Python 3.8 o superior.
+Requires Python 3.8 or later.
 
-## Qué incluye
+## What is inside
 
-| Pieza | Descripción |
+| Piece | Description |
 |---|---|
-| `chaskiflow/engine.py` | Valida el grafo (ciclos, referencias, campos), lo ejecuta en paralelo, maneja errores, timeout y cancelación |
-| `chaskiflow/plugin_loader.py` | Descubre plugins, valida manifiestos, calcula su hash |
-| `chaskiflow/executor.py`, `runner.py` | Cada tarea corre en un **subproceso aparte** (JSON por stdin/stdout) |
-| `chaskiflow/templating.py` | `{{Nodo.result.campo}}` entre nodos, con tipos nativos |
-| `chaskiflow/declarative.py` | Plugins sin código: una petición HTTP descrita en JSON |
-| `plugins/` | `http_request`, `export_csv`, `export_xlsx`, `hello_world` |
-| `chaskiflow/server.py`, `api.py` | Servidor HTTP (stdlib) y API REST |
-| `chaskiflow/db.py`, `auth.py`, `access.py` | SQLite con migraciones, PBKDF2, permisos |
-| `chaskiflow/runs.py`, `plugin_gate.py` | Ejecuciones en vivo, aprobación de plugins |
-| `plugins/news_*`, `outlook_send` | Paquete de noticias (ver `docs/NOTICIAS.md`) |
-| `web/` | Interfaz en JavaScript puro (sin compilar, sin CDN) |
-| `docs/PLUGINS.md` | Guía para crear plugins |
-| `docs/SUCURSALES.md` | Ejemplo: sucursales desde una lista de enlaces con IA local |
-| `docs/SMV_FUSIONES.md` | Ejemplo: estados financieros de la SMV, búsqueda de fusión/escisión/reorganización societaria |
-| `docs/CREAR_PLUGINS_CON_IA.md` | Crear plugins con una IA (prompt incluido) |
+| `chaskiflow/engine.py` | Validates the graph (cycles, references, fields), runs it in parallel, handles errors, timeouts and cancellation |
+| `chaskiflow/plugin_loader.py` | Discovers plugins, validates manifests, computes their hash |
+| `chaskiflow/executor.py`, `runner.py` | Every task runs in a **separate subprocess** (JSON over stdin/stdout) |
+| `chaskiflow/templating.py` | `{{Node.result.field}}` references between nodes, with native types |
+| `chaskiflow/declarative.py` | Code-free plugins: an HTTP request described in JSON |
+| `chaskiflow/server.py`, `api.py` | HTTP server (stdlib) and REST API |
+| `chaskiflow/db.py`, `auth.py`, `access.py` | SQLite with automatic migrations, PBKDF2 passwords, permissions |
+| `chaskiflow/runs.py`, `plugin_gate.py` | Live runs, plugin approval |
+| `web/` | Plain-JavaScript UI (no build step, no CDN) |
+| `plugins/` | `http_request`, `export_csv`, `export_xlsx`, `hello_world`, news pack (`news_*`, `outlook_send`), `site_locations_crawl`, `llm_structure_addresses`, `url_list_read`, `smv_financial_download`, `pdf_keyword_scan`, and `_plantilla` (a plugin template) |
+| `examples/` | Ready-to-import workflows |
+| `docs/PLUGINS.md` | How to write a plugin |
+| `docs/CREAR_PLUGINS_CON_IA.md` | Create plugins with an AI assistant (prompt included) |
+| `docs/NOTICIAS.md`, `SUCURSALES.md`, `SMV_FUSIONES.md`, `IMPORTAR_G1G.md` | Guides for the bundled examples (in Spanish) |
 
-## Ejemplo de workflow
+## Example workflow
 
 ```json
 {
@@ -76,11 +90,22 @@ Requiere Python 3.8 o superior.
 }
 ```
 
-## Hoja de ruta
+## Design constraints
 
-V1 servidor, usuarios, SQLite, formularios · V2 editor visual + paquete de noticias ·
-V3 programación e historial · V4 pulido, plantilla de plugin, validador.
+ChaskiFlow was designed for institutional environments where the proxy breaks SSL and blocks binary
+downloads, so: the backend is pure Python stdlib (no compiled dependencies, `pypdf` is vendored as pure
+Python), the UI ships ready to run, and every release is plain text files. Plugins that need a local LLM
+talk to any OpenAI-compatible server (for example quipullm or LM Studio) running on
+your own network.
 
-Licencia: Apache-2.0 (ver `LICENSE` y `NOTICE`).
+## Roadmap
 
-Autor: **Diego Guevara B.** · Contribuciones: **Claude**.
+V1 server, users, SQLite, forms · V2 visual editor + news pack · V3 scheduling and run history ·
+V4 polish, plugin template, validator · V5 SMV and branch-lookup examples with a local LLM,
+redesigned runs view · next: step-level undo in the graph, loops (foreach), JavaScript-rendered pages.
+
+## License
+
+Apache-2.0 (see `LICENSE` and `NOTICE`).
+
+Author: **Diego Guevara B.** · Contributions: **Claude**.

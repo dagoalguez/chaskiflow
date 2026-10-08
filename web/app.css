@@ -236,7 +236,6 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .code { font-family: Consolas, "Cascadia Mono", "Courier New", monospace; font-size: 12.5px; white-space: pre; tab-size: 4; width: 100%; box-sizing: border-box; overflow: auto; }
 
 /* paneles que se ocultan con ☰ */
-.shell.hide-sb .sidebar { display: none; }
 .shell.hide-insp .inspector { display: none; }
 .topbar button.panel-toggle { font-size: 18px; line-height: 1; padding: 3px 9px; }
 .btn.panel-toggle.on { background: var(--panel2); }
@@ -310,3 +309,22 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .ctxmenu .pk-tx { display: flex; flex-direction: column; min-width: 0; }
 .ctxmenu .pk-tx small { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ctxmenu.picker > .mi { border-top: 1px solid var(--border); margin-top: 4px; }
+
+/* ---- barra lateral: botones con icono + texto; al «reducir» (☰) queda una columna de iconos ---- */
+.sidebar .sb-head .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.sidebar .sb-head .sb-new { flex: 1; }
+.sidebar .sb-new .ic { font-weight: 700; }
+.wf-item .ini { display: none; }
+.shell.hide-sb .sidebar { width: 56px; transition: width .12s; }
+.shell.hide-sb .sidebar .lb, .shell.hide-sb .sidebar .sb-sec, .shell.hide-sb .sidebar .about-line,
+.shell.hide-sb .sidebar .wf-item .nm, .shell.hide-sb .sidebar .wf-item .acts { display: none; }
+.shell.hide-sb .sidebar .sb-head { flex-direction: column; padding: 10px 6px; align-items: stretch; }
+.shell.hide-sb .sidebar .sb-head .btn { padding: 7px 0; }
+.shell.hide-sb .sidebar .list { padding: 0 6px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.shell.hide-sb .sidebar .list .muted { display: none; }
+.shell.hide-sb .sidebar .wf-item { position: relative; width: 40px; height: 40px; padding: 0; justify-content: center; border-radius: 10px; }
+.shell.hide-sb .sidebar .wf-item .ini { display: block; font-weight: 700; font-size: 15px; }
+.shell.hide-sb .sidebar .wf-item .dot { position: absolute; right: 4px; top: 4px; width: 8px; height: 8px; }
+.shell.hide-sb .sidebar .sb-foot { padding: 6px; align-items: center; }
+.shell.hide-sb .sidebar .sb-link { width: 40px; justify-content: center; padding: 7px 0; }
+.shell.hide-sb .sidebar .sb-link .ic { font-size: 17px; width: auto; }

@@ -4,8 +4,10 @@ import json
 import os
 from pathlib import Path
 
+LOCAL_HOST = "127.0.0.1"
+SHARE_HOST = "0.0.0.0"
+
 DEFAULTS = {
-    "host": "0.0.0.0",
     "port": 8000,
     "data_dir": "data",                 # aquí van app.db y los archivos temporales
     "plugin_dirs": ["plugins"],         # carpetas donde se buscan plugins
@@ -31,6 +33,10 @@ def load_config(base_dir, path=None, create=True):
             raise SystemExit("config.json no es un JSON válido: %s" % e)
         if not isinstance(user, dict):
             raise SystemExit("config.json debe ser un objeto JSON")
+        if "host" in user:
+            # versiones anteriores escribían "host": "0.0.0.0" en config.json; ahora se comparte solo con --share
+            user.pop("host")
+            print("AVISO: «host» de config.json se ignora; para compartir con la red local use:  python servidor.py --share")
         unknown = [k for k in user if k not in DEFAULTS]
         if unknown:
             print("AVISO: claves desconocidas en config.json: %s" % ", ".join(unknown))
@@ -42,6 +48,7 @@ def load_config(base_dir, path=None, create=True):
             pass
     if os.environ.get("CHASKIFLOW_PORT"):
         cfg["port"] = int(os.environ["CHASKIFLOW_PORT"])
+    cfg["host"] = LOCAL_HOST            # por defecto solo este equipo; --share (servidor.py) lo abre a la red
     if os.environ.get("CHASKIFLOW_HOST"):
         cfg["host"] = os.environ["CHASKIFLOW_HOST"]
     cfg["base_dir"] = str(base)

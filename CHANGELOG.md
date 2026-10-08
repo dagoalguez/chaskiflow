@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.0 — 2026-10-08
+- **Cambio de comportamiento (seguridad): `python servidor.py` ya NO se comparte con la red.** Por defecto escucha solo en `127.0.0.1` (este equipo). Para compartirlo con la LAN: **`python servidor.py --share`** (escucha en `0.0.0.0` e imprime las direcciones de la red). Nuevo `--port N`. Si su `config.json` antiguo trae `"host": "0.0.0.0"` (lo escribían versiones anteriores), ahora se **ignora** con un aviso; la variable de entorno `CHASKIFLOW_HOST` sigue funcionando. **Si su equipo usaba el servidor desde otras PC, agregue `--share` al comando de arranque.**
+- **Barra lateral: «reducir» en vez de ocultar.** El botón ☰ ahora deja una columna de iconos (＋ nuevo, ⤓ importar, un círculo con la inicial de cada workflow con su punto de estado, y los accesos de abajo: programaciones, claves, papelera, plugins, usuarios, auditoría); con tooltip. Pulse ☰ otra vez para ampliarla.
+- README de GitHub traducido al **inglés** y puesto al día (versión, plugins, `--share`, pestañas Editor/Ejecuciones).
+- Pruebas nuevas `tests/test_host.py`.
+
 ## 0.15.1 — 2026-10-08
 - **Clic derecho en el fondo del grafo → añadir paso** en ese punto, con un **selector con búsqueda** (escriba para filtrar por nombre, categoría o descripción; flechas ↑↓ + Enter, o clic). El menú conserva «Pegar aquí».
 - **Clic derecho sobre un paso → «Añadir paso después…»**: crea el paso a su derecha y lo conecta.

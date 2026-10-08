@@ -38,7 +38,10 @@ try:
         # --- paneles
         check(shown(pg, ".sidebar") and shown(pg, ".inspector"), "los 2 paneles visibles al inicio")
         pg.click(".topbar .panel-toggle"); pg.wait_for_timeout(150)
-        check(not shown(pg, ".sidebar"), "☰ de la barra superior oculta la lista de workflows")
+        w_rail = pg.eval_on_selector(".sidebar", "e => e.getBoundingClientRect().width")
+        check(w_rail < 80 and shown(pg, ".sidebar .sb-new") and shown(pg, ".sidebar .sb-link") and shown(pg, ".sidebar .wf-item .ini")
+              and not shown(pg, ".sidebar .sb-link .lb") and not shown(pg, ".sidebar .wf-item .nm"), "☰ reduce la barra lateral a una columna de iconos (%dpx)" % w_rail)
+        pg.screenshot(path=OUT + "p0_reducida.png")
         pg.click(".gtools .panel-toggle"); pg.wait_for_timeout(150)
         check(not shown(pg, ".inspector"), "☰ Panel oculta el panel del paso")
         pg.screenshot(path=OUT + "p1_ocultos.png")
@@ -47,7 +50,7 @@ try:
         check("hide-sb" in cls and "hide-insp" in cls, "el estado oculto se recuerda al recargar: " + cls)
         pg.click(".topbar .panel-toggle"); pg.wait_for_selector(".wf-item"); pg.click(".wf-item"); pg.wait_for_selector(".gsvg")
         pg.click(".gtools .panel-toggle"); pg.wait_for_timeout(150)
-        check(shown(pg, ".sidebar") and shown(pg, ".inspector"), "se vuelven a mostrar")
+        check(pg.eval_on_selector(".sidebar", "e => e.getBoundingClientRect().width") > 200 and shown(pg, ".inspector"), "se vuelven a mostrar")
         # el registro inferior se pliega y se despliega
         pg.click(".dk-head"); pg.wait_for_timeout(150)
         check(pg.locator(".dk-body").count() == 0, "pulsar la cabecera del Registro lo pliega")

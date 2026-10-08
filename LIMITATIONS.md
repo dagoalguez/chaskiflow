@@ -43,6 +43,7 @@ Honestas y a propósito: aquí va lo que **no** hace o **no se ha medido**.
   Con la librería estándar no hay una forma fiable de aislarlo en Windows. Instale solo plugins
   que haya revisado (el hash SHA-256 de cada plugin está en el catálogo).
 - Los plugins de exportación escriben en cualquier carpeta que se les indique.
+- **Compartir con la red es opt-in**: `python servidor.py` solo escucha en este equipo; `--share` lo abre a la LAN.
 - **Sin TLS**: el tráfico en la LAN va por HTTP sin cifrar (contraseñas y secretos incluidos). Úselo solo
   en una red de confianza o detrás de un proxy inverso con HTTPS.
 - **Los secretos se guardan en texto plano dentro de `data/app.db`** (sin dependencias no hay cifrado

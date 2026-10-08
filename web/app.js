@@ -266,7 +266,7 @@
       h("button", { text: t("logout"), onclick: function () { api("POST", "/api/logout").then(function () { S.user = null; showLogin(); }); } }));
     els.list = h("div", { class: "list" });
     var canCreate = S.user.role !== "viewer";
-    function link(ic, label, fn) { return h("button", { class: "sb-link", onclick: fn }, h("span", { class: "ic", text: ic }), h("span", { text: label })); }
+    function link(ic, label, fn) { return h("button", { class: "sb-link", title: label, "aria-label": label, onclick: fn }, h("span", { class: "ic", text: ic }), h("span", { class: "lb", text: label })); }
     var sbFoot = h("div", { class: "sb-foot" },
       h("div", { class: "sb-sec", text: lang === "es" ? "Mi espacio" : "My space" }),
       link("⏰", t("schedules"), allSchedulesDialog),
@@ -279,8 +279,10 @@
     sbFoot.appendChild(aboutLine("about-side"));
     var side = h("div", { class: "sidebar" },
       h("div", { class: "sb-head" },
-        canCreate ? h("button", { class: "btn primary", style: "flex:1", text: t("new_wf"), onclick: createWorkflow }) : null,
-        canCreate ? h("button", { class: "btn", text: t("import_"), onclick: importDialog }) : null),
+        canCreate ? h("button", { class: "btn primary sb-new", title: t("new_wf").replace(/^\+\s*/, ""), "aria-label": t("new_wf").replace(/^\+\s*/, ""), onclick: createWorkflow },
+          h("span", { class: "ic", text: "＋" }), h("span", { class: "lb", text: t("new_wf").replace(/^\+\s*/, "") })) : null,
+        canCreate ? h("button", { class: "btn sb-imp", title: t("import_"), "aria-label": t("import_"), onclick: importDialog },
+          h("span", { class: "ic", text: "⤓" }), h("span", { class: "lb", text: t("import_") })) : null),
       els.list, sbFoot);
     els.main = h("div", { class: "main" });
     clear(root).appendChild(h("div", { class: "shell" }, top, h("div", { class: "body" }, side, els.main)));
@@ -334,8 +336,9 @@
         acts.appendChild(h("button", { class: "btn icon", title: t("rename"), text: "✎", onclick: function (e) { e.stopPropagation(); renameWorkflow(w); } }));
         if (mine) acts.appendChild(h("button", { class: "btn icon", title: t("remove"), text: "✕", onclick: function (e) { e.stopPropagation(); deleteWorkflow(w); } }));
       }
-      els.list.appendChild(h("div", { class: "wf-item" + (S.current && S.current.id === w.id ? " active" : ""), onclick: function () { openWorkflow(w.id); } },
+      els.list.appendChild(h("div", { class: "wf-item" + (S.current && S.current.id === w.id ? " active" : ""), title: w.name, onclick: function () { openWorkflow(w.id); } },
         h("span", { class: "dot " + (lr ? lr.status : ""), title: lr ? lr.status : "" }),
+        h("span", { class: "ini", "aria-hidden": "true", text: (w.name || "?").trim().charAt(0).toUpperCase() }),
         h("div", { class: "nm" }, h("div", { text: w.name }), h("div", { class: "sub", text: w.owner + (w.access !== "edit" ? " · " + t(w.access === "run" ? "run_" : "view") : "") })),
         acts));
     });
