@@ -265,6 +265,9 @@
       h("button", { text: "⚙", title: t("settings"), onclick: settingsDialog }),
       h("button", { text: t("logout"), onclick: function () { api("POST", "/api/logout").then(function () { S.user = null; showLogin(); }); } }));
     els.list = h("div", { class: "list" });
+    S.wfFilter = "";
+    var wfSearch = h("input", { type: "search", placeholder: lang === "es" ? "Buscar workflow…" : "Search workflows…", autocomplete: "off",
+      "aria-label": lang === "es" ? "Buscar workflow" : "Search workflows", oninput: function () { S.wfFilter = wfSearch.value; renderList(); } });
     var canCreate = S.user.role !== "viewer";
     function link(ic, label, fn) { return h("button", { class: "sb-link", title: label, "aria-label": label, onclick: fn }, h("span", { class: "ic", text: ic }), h("span", { class: "lb", text: label })); }
     var sbFoot = h("div", { class: "sb-foot" },
@@ -281,8 +284,11 @@
       h("div", { class: "sb-head" },
         canCreate ? h("button", { class: "btn primary sb-new", title: t("new_wf").replace(/^\+\s*/, ""), "aria-label": t("new_wf").replace(/^\+\s*/, ""), onclick: createWorkflow },
           h("span", { class: "ic", text: "＋" }), h("span", { class: "lb", text: t("new_wf").replace(/^\+\s*/, "") })) : null,
+        h("button", { class: "btn sb-find", title: lang === "es" ? "Buscar workflow" : "Find workflow", "aria-label": lang === "es" ? "Buscar workflow" : "Find workflow",
+          onclick: function (ev) { var r0 = ev.currentTarget.getBoundingClientRect(); wfPicker({ clientX: r0.right + 6, clientY: r0.top }); } }, h("span", { class: "ic", text: "🔍" })),
         canCreate ? h("button", { class: "btn sb-imp", title: t("import_"), "aria-label": t("import_"), onclick: importDialog },
           h("span", { class: "ic", text: "⤓" }), h("span", { class: "lb", text: t("import_") })) : null),
+      h("div", { class: "sb-search" }, wfSearch),
       els.list, sbFoot);
     els.main = h("div", { class: "main" });
     clear(root).appendChild(h("div", { class: "shell" }, top, h("div", { class: "body" }, side, els.main)));
@@ -328,7 +334,10 @@
   function renderList() {
     clear(els.list);
     if (!S.workflows.length) els.list.appendChild(h("div", { class: "muted", style: "padding:10px", text: t("no_wf") }));
+    var f = (S.wfFilter || "").trim().toLowerCase(), rc = recentIds().slice(0, RECENT_MAX), shownN = 0;
     S.workflows.forEach(function (w) {
+      if (f && (w.name + " " + (w.owner || "")).toLowerCase().indexOf(f) < 0) return;
+      shownN++;
       var lr = w.last_run;
       var acts = h("div", { class: "acts" });
       if (w.access === "edit") {
@@ -336,12 +345,45 @@
         acts.appendChild(h("button", { class: "btn icon", title: t("rename"), text: "✎", onclick: function (e) { e.stopPropagation(); renameWorkflow(w); } }));
         if (mine) acts.appendChild(h("button", { class: "btn icon", title: t("remove"), text: "✕", onclick: function (e) { e.stopPropagation(); deleteWorkflow(w); } }));
       }
-      els.list.appendChild(h("div", { class: "wf-item" + (S.current && S.current.id === w.id ? " active" : ""), title: w.name, onclick: function () { openWorkflow(w.id); } },
+      var isCur = S.current && S.current.id === w.id;
+      els.list.appendChild(h("div", { class: "wf-item" + (isCur ? " active" : "") + ((isCur || rc.indexOf(w.id) >= 0) ? " rc" : ""), title: w.name, onclick: function () { openWorkflow(w.id); } },
         h("span", { class: "dot " + (lr ? lr.status : ""), title: lr ? lr.status : "" }),
         h("span", { class: "ini", "aria-hidden": "true", text: (w.name || "?").trim().charAt(0).toUpperCase() }),
         h("div", { class: "nm" }, h("div", { text: w.name }), h("div", { class: "sub", text: w.owner + (w.access !== "edit" ? " · " + t(w.access === "run" ? "run_" : "view") : "") })),
         acts));
     });
+    if (S.workflows.length && !shownN) els.list.appendChild(h("div", { class: "muted", style: "padding:10px", text: lang === "es" ? "Ningún workflow coincide." : "No matching workflow." }));
+  }
+  // selector con búsqueda de todos los workflows (para la barra reducida)
+  function wfPicker(ev) {
+    closeCtxMenu();
+    var es = lang === "es", m = h("div", { class: "ctxmenu picker", id: "ctxmenu", role: "menu" });
+    var q = h("input", { type: "search", placeholder: es ? "Buscar workflow…" : "Search workflows…", autocomplete: "off" });
+    var list = h("div", { class: "pk-list" }), cur = 0, shown = [];
+    function pick(w) { closeCtxMenu(); openWorkflow(w.id); }
+    function draw() {
+      clear(list); shown = [];
+      var f = q.value.trim().toLowerCase(), rc = recentIds();
+      var ws = S.workflows.filter(function (w) { return !f || (w.name + " " + (w.owner || "")).toLowerCase().indexOf(f) >= 0; });
+      if (!f) ws.sort(function (a, b) { var ia = rc.indexOf(a.id), ib = rc.indexOf(b.id); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
+      ws.forEach(function (w) {
+        var i = shown.length; shown.push(w);
+        var b = h("button", { class: "mi pk-item" + (i === cur ? " cur" : ""), role: "menuitem", onclick: function (e) { e.stopPropagation(); pick(w); } },
+          h("span", { class: "pk-ic" }, h("span", { class: "dot " + (w.last_run ? w.last_run.status : "") })),
+          h("span", { class: "pk-tx" }, h("span", { text: w.name }), h("small", { class: "muted", text: w.owner || "" })));
+        b.addEventListener("pointermove", function () { if (cur !== i) { cur = i; mark(); } });
+        list.appendChild(b);
+      });
+      if (!shown.length) list.appendChild(h("div", { class: "muted", style: "padding:10px", text: es ? "Ningún workflow coincide." : "No matching workflow." }));
+    }
+    function mark() { var it = list.querySelectorAll(".pk-item"); for (var i = 0; i < it.length; i++) it[i].classList.toggle("cur", i === cur); if (it[cur] && it[cur].scrollIntoView) it[cur].scrollIntoView({ block: "nearest" }); }
+    q.addEventListener("input", function () { cur = 0; draw(); });
+    q.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown") { e.preventDefault(); if (shown.length) { cur = (cur + 1) % shown.length; mark(); } }
+      else if (e.key === "ArrowUp") { e.preventDefault(); if (shown.length) { cur = (cur - 1 + shown.length) % shown.length; mark(); } }
+      else if (e.key === "Enter") { e.preventDefault(); if (shown[cur]) pick(shown[cur]); }
+    });
+    m.appendChild(q); m.appendChild(list); draw(); mountCtx(ev, m); q.focus();
   }
   function refreshList() { return api("GET", "/api/workflows").then(function (d) { S.workflows = d.workflows; renderList(); }); }
 
@@ -429,7 +471,15 @@
   }
 
   // ============================================================ abrir y guardar
+  // últimos workflows abiertos (se recuerdan en este navegador); la barra reducida muestra solo estos
+  var RECENT_MAX = 5;
+  function recentIds() { try { var r = JSON.parse(localStorage.getItem("cf_recent") || "[]"); return Array.isArray(r) ? r : []; } catch (e) { return S.recentMem || []; } }
+  function pushRecent(id) {
+    var r = recentIds().filter(function (x) { return x !== id; }); r.unshift(id); r = r.slice(0, 20);
+    S.recentMem = r; try { localStorage.setItem("cf_recent", JSON.stringify(r)); } catch (e) { /* sin almacenamiento */ }
+  }
   function openWorkflow(id) {
+    pushRecent(id);
     flushSave();
     stopPolling();
     api("GET", "/api/workflows/" + id).then(function (d) {

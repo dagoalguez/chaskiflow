@@ -328,3 +328,13 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .shell.hide-sb .sidebar .sb-foot { padding: 6px; align-items: center; }
 .shell.hide-sb .sidebar .sb-link { width: 40px; justify-content: center; padding: 7px 0; }
 .shell.hide-sb .sidebar .sb-link .ic { font-size: 17px; width: auto; }
+
+/* ---- muchos workflows: buscador en la barra ancha; en la reducida solo los recientes + botón de búsqueda ---- */
+.sidebar .sb-search { padding: 0 12px 8px; }
+.sidebar .sb-search input { width: 100%; }
+.sidebar .sb-find { display: none; }
+.shell.hide-sb .sidebar .sb-search { display: none; }
+.shell.hide-sb .sidebar .sb-find { display: inline-flex; }
+.shell.hide-sb .sidebar .wf-item:not(.rc) { display: none; }
+.shell.hide-sb .sidebar .wf-item.rc:not(.active) { opacity: .85; }
+.ctxmenu .pk-ic .dot { display: inline-block; }
