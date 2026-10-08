@@ -331,7 +331,7 @@ def scan_pdf(item, terms, terms_txt, vis, opt, ctx, deadline):
     res["tipo"] = "texto" if pdf_con_texto else "escaneado"
     for i in range(len(pages)):
         if time.time() - t0 > opt["max_pdf_seconds"]:
-            res["notas"].append("cortado a las %d páginas por tiempo" % i)
+            res["notas"].insert(0, "se cortó en la página %d por el tiempo máximo por PDF (%d s): súbalo en «Tiempo máximo por PDF» (opciones avanzadas)" % (i + 1, opt["max_pdf_seconds"]))
             res["no_leidas"] += len(pages) - i
             break
         page = pages[i]
@@ -362,12 +362,15 @@ def scan_pdf(item, terms, terms_txt, vis, opt, ctx, deadline):
             continue
         if ia_used >= opt["ia_max_paginas"] or (deadline and time.time() > deadline):
             res["no_leidas"] += 1
+            if ia_used >= opt["ia_max_paginas"] and not any("Máx. páginas" in n for n in res["notas"]):
+                res["notas"].insert(0, "se alcanzó «Máx. páginas por PDF para la IA» (%d)" % opt["ia_max_paginas"])
             continue
         try:
             mime, data = pdftext.page_image(page)
         except ValueError as e:
             res["no_leidas"] += 1
-            if str(e) not in res["notas"] and len(res["notas"]) < 4:
+            res["formatos"] = res.get("formatos", 0) + 1
+            if len(res["notas"]) < 4 and not any(str(e)[:40] in n for n in res["notas"]):
                 res["notas"].append("p. %d: %s" % (i + 1, e))
             continue
         except Exception as e:
@@ -486,9 +489,12 @@ def run(config, ctx):
                 _atomic_json(cache_path, cache)
         hits = res["hits"]
         if not res["error"] and not res.get("_reutilizado"):
-            ctx.log("%s %s: %d pág. · %d con texto · %d sin texto (%d leídas con IA)%s → %s" % (
+            ctx.log("%s %s: %d pág. · %d con texto · %d escaneadas (%d leídas con IA)%s%s%s → %s" % (
                 it["empresa"], it["anio"], res["paginas"], res["con_texto"], res["sin_texto"], res["leidas_ia"],
-                " · %d sin leer" % res["no_leidas"] if res["no_leidas"] else "", ", ".join(hits) if hits else "sin hallazgo"))
+                " · %d en blanco" % res["vacias"] if res.get("vacias") else "",
+                " · %d SIN LEER" % res["no_leidas"] if res["no_leidas"] else "",
+                (" · motivo: " + "; ".join(res["notas"][:3])) if res["no_leidas"] and res["notas"] else "",
+                ", ".join(hits) if hits else "sin hallazgo"))
         palabras = "; ".join("%s (%d)" % (t, h["n"]) for t, h in hits.items())
         pgs = sorted({p for h in hits.values() for p in h["paginas"]})
         fuentes = sorted({h["fuente"] for h in hits.values()})

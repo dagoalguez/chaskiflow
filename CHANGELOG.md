@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.2 — 2026-10-07
+- `pdf_keyword_scan`: la línea de registro por PDF ahora indica páginas en blanco, páginas SIN LEER y el **motivo** (formato de imagen no soportado, tope «Máx. páginas por PDF para la IA» o «Tiempo máximo por PDF»).
+
 ## 0.14.1 — 2026-10-07
 - «Probar conexión»: si el servidor responde que el modelo no tiene visión (falta el mmproj), el mensaje lo explica y dice qué hacer.
 
