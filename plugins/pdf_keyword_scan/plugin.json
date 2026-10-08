@@ -1,11 +1,11 @@
 {
   "id": "pdf_keyword_scan",
   "name": "PDF: buscar palabras y organizar",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "ChaskiFlow",
   "icon": "🔎",
   "category": "Archivos",
-  "description": "Revisa PDF buscando palabras (por defecto: fusión, escisión, reorganización societaria; no distingue mayúsculas ni tildes y acepta plurales). Lee el texto del PDF; la IA se usa solo en un PDF que NO trae nada de texto (todo escaneado): sus páginas se leen con un modelo local con visión (p. ej. LFM2.5-VL en quipullm). Copia los PDF con hallazgos a Carpeta/IDENTIFICADOS/Empresa/Año y los que no se pudieron leer a REVISAR_MANUAL. Recuerda lo ya revisado para continuar sin repetir. Incluye pypdf (BSD) para leer PDF sin instalar nada.",
+  "description": "Revisa PDF buscando palabras (por defecto: fusión, escisión, reorganización societaria; no distingue mayúsculas ni tildes y acepta plurales). Lee el texto del PDF; las páginas con el texto convertido a contornos (sin capa de texto) se dibujan. La IA se usa solo en un PDF que NO trae nada de texto (todo escaneado) y en esas páginas dibujadas: se leen con un modelo local con visión (p. ej. LFM2.5-VL en quipullm). Copia los PDF con hallazgos a Carpeta/IDENTIFICADOS/Empresa/Año y los que no se pudieron leer a REVISAR_MANUAL. Recuerda lo ya revisado para continuar sin repetir. Incluye pypdf (BSD) para leer PDF sin instalar nada.",
   "kind": "python",
   "entry": "task.py",
   "timeout": 43200,
@@ -30,7 +30,9 @@
     {"key": "reprocesar", "label": "Revisar de nuevo aunque ya se haya revisado", "type": "boolean", "default": false},
     {"key": "ia_timeout", "label": "Espera por respuesta de la IA (s)", "type": "number", "default": 300, "min": 10, "max": 3600, "advanced": true},
     {"key": "min_chars", "label": "Caracteres mínimos para considerar que una página tiene texto", "type": "number", "default": 25, "min": 1, "max": 1000, "advanced": true},
-    {"key": "max_pdf_seconds", "label": "Tiempo máximo por PDF (s)", "type": "number", "default": 600, "min": 10, "max": 7200, "advanced": true},
+    {"key": "vec_min_rellenos", "label": "Rellenos vectoriales mínimos para dibujar una página sin texto", "type": "number", "default": 30, "min": 5, "max": 5000, "advanced": true, "help": "Algunos PDF traen el texto convertido a contornos (sin capa de texto ni imágenes). Si una página sin texto tiene al menos esta cantidad de rellenos, se dibuja y se lee con la IA"},
+    {"key": "vector_dpi", "label": "Resolución para dibujar páginas vectoriales (dpi)", "type": "number", "default": 200, "min": 72, "max": 400, "advanced": true},
+    {"key": "max_pdf_seconds", "label": "Tiempo máximo por PDF (s)", "type": "number", "default": 1800, "min": 10, "max": 7200, "advanced": true},
     {"key": "allow_remote", "label": "Permitir servidores fuera de la red local", "type": "boolean", "default": false, "advanced": true, "help": "Déjelo apagado: las páginas solo deben salir a su servidor local"}
   ],
   "outputs": [

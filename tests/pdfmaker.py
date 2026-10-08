@@ -42,6 +42,8 @@ def make_pdf(pages, compress=True):
          ("gris", valor_0_255)                  página escaneada: imagen gris 256x256 con ese valor (Flate)
          ("jpeg",)                              página escaneada: imagen JPEG
          ("jbig2",)                             página escaneada con un formato que no se puede leer
+         ("vector", n)                          texto convertido a contornos: SIN capa de texto ni imágenes, n rellenos
+         ("vector_logo", n)                     igual, pero con un logo JPEG grande (como los informes de auditoría)
     """
     objs = [None, None]          # 1 = catálogo, 2 = páginas (se rellenan al final)
     kids = []
@@ -61,6 +63,20 @@ def make_pdf(pages, compress=True):
             else:
                 flt = b""
             cs = add(b"<< /Length %d%s >>\nstream\n" % (len(data), flt) + data + b"\nendstream")
+        elif kind in ("vector", "vector_logo"):
+            # n cuadros negros de 5x8 pt en filas: hacen de «letras» dibujadas como trazos rellenos
+            n = pg[1]
+            ops = []
+            for k in range(n):
+                x, y = 60 + (k % 40) * 12, 780 - (k // 40) * 20
+                ops.append(b"0 0 0 rg %d %d 5 8 re\nf" % (x, y))
+            content = b"\n".join(ops)
+            if kind == "vector_logo":
+                img = add(b"<< /Type /XObject /Subtype /Image /Width 400 /Height 400 /ColorSpace /DeviceGray /BitsPerComponent 8 "
+                          b"/Filter /DCTDecode /Length %d >>\nstream\n" % len(JPEG_8X8) + JPEG_8X8 + b"\nendstream")
+                res += b" /XObject << /Im1 %d 0 R >>" % img
+                content = b"q 100 0 0 40 50 790 cm /Im1 Do Q\n" + content
+            cs = add(b"<< /Length %d >>\nstream\n" % len(content) + content + b"\nendstream")
         else:
             if kind == "gris":
                 raw = bytes([pg[1]]) * (256 * 256)

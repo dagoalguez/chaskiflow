@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.3 — 2026-10-07
+- **Corrección importante en `pdf_keyword_scan`: PDF con el texto convertido a contornos.** Algunos informes (p. ej. dictámenes de auditoras) no traen capa de texto ni imágenes: cada letra es un trazo vectorial. El plugin los tomaba por páginas «en blanco» (o leía solo el logo JPEG) y los daba como **«sin hallazgo» sin avisar**. Ahora una página sin texto con al menos `vec_min_rellenos` (30) rellenos vectoriales se **dibuja** (nuevo `vecrender.py`, Python puro, ≈0,6 s por página a 200 dpi) y esa imagen se manda a la IA. Vale también en PDF mixtos (páginas con texto + páginas dibujadas). Sin servidor de IA, esas páginas quedan como **SIN LEER** y el PDF va a `REVISAR_MANUAL`.
+- Respeta `/Rotate`, baja los dpi si la página es enorme y corta el dibujo a los 120 s. Las imágenes incrustadas (logos, firmas) no se dibujan.
+- Campos avanzados nuevos: «Rellenos vectoriales mínimos» y «Resolución para dibujar páginas vectoriales». «Tiempo máximo por PDF» sube de 600 a 1800 s (40 páginas × 15–30 s de IA superaban los 600 s).
+- Nuevo valor `texto+ia` en `metodo` (PDF con texto y alguna página dibujada leída con IA).
+- **Aviso al actualizar:** los resultados guardados en `_cache_escaneo.json` de PDF de este tipo eran falsos negativos; la clave de caché cambió y se **vuelven a revisar** solos. Revise también los «sin hallazgo» de corridas anteriores con PDF de auditoras.
+- Pruebas nuevas (`tests.test_smv.VectorPages`): fallan con el `task.py` anterior.
+
 ## 0.14.2 — 2026-10-07
 - `pdf_keyword_scan`: la línea de registro por PDF ahora indica páginas en blanco, páginas SIN LEER y el **motivo** (formato de imagen no soportado, tope «Máx. páginas por PDF para la IA» o «Tiempo máximo por PDF»).
 

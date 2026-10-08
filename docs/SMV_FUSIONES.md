@@ -13,6 +13,13 @@ Archivo: `examples/smv_fusiones_escisiones.json` (Importar → elegir ese archiv
 3. Exporta **CSV y Excel** con una fila por PDF (palabras halladas, páginas, un trozo de texto alrededor para revisarlo rápido)
    y un CSV con el detalle de las descargas.
 
+## PDF con el texto en contornos (sin capa de texto)
+
+Muchos dictámenes de auditoras no son escaneos: cada letra es un trazo vectorial, así que no hay texto que extraer **ni imagen que leer**. Desde la 0.14.3 el plugin detecta estas páginas (sin texto, con 30 o más rellenos vectoriales), las **dibuja** a 200 dpi y manda ese dibujo a la IA, igual que a un escaneo. Con un PDF de 40 páginas calcule de 10 a 20 minutos de IA. Sin servidor de IA quedan como «SIN LEER» y el PDF va a `REVISAR_MANUAL`.
+
+- Las imágenes incrustadas (logos, firmas) no se dibujan; si una página fuera un escaneo **y** tuviera muchos trazos vectoriales, solo se leerían los trazos.
+- No se dibujan degradados, transparencias ni recortes no rectangulares.
+
 ## PDF escaneados (sin texto)
 
 La decisión es **por archivo**: si alguna página del PDF trae texto, se busca solo en el texto y no se usa IA. Solo un PDF **sin ningún texto** (todo escaneado) manda sus páginas, una por una, a un modelo local con visión (por ejemplo **LFM2.5-VL 1.6B en quipullm**). Se extrae la

@@ -2,6 +2,7 @@
 envía al modelo con visión. Usa pypdf (pura Python, licencia BSD) incluido en la carpeta pypdf/."""
 
 import logging
+import re
 import struct
 import sys
 import typing
@@ -20,6 +21,7 @@ if sys.version_info < (3, 11):               # pypdf pide typing_extensions en P
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pypdf import PdfReader  # noqa: E402
+import vecrender  # noqa: E402  (dibuja páginas cuyo texto está convertido a contornos)
 
 logging.getLogger("pypdf").setLevel(logging.CRITICAL)
 
@@ -198,3 +200,27 @@ def page_image(page, min_side=200):
     if best is None:
         raise NoImage("la página no tiene una imagen que leer")
     return image_to_upload(best[1])
+
+
+# ----------------------------------------------------------------------------------- páginas con texto en contornos
+_FILL_RE = re.compile(rb"(?<![\w/.\-+])(?:f\*?|F|B\*?|b\*?)(?=\s|$)")
+
+
+def vector_fills(page):
+    """Cantidad de rellenos vectoriales de la página. Un PDF cuyo texto está convertido a contornos no tiene capa de
+    texto ni imágenes, pero sí cientos de rellenos (una línea de texto ≈ 80). Los logos y sellos suman pocos."""
+    c = page.get_contents()
+    if c is None:
+        return 0
+    return len(_FILL_RE.findall(c.get_data()))
+
+
+def render_png(page, dpi=200, max_seconds=120):
+    """Dibuja la página (solo vectores; las imágenes incrustadas se omiten) y devuelve ('image/png', bytes)."""
+    try:
+        w, h, pix, _st = vecrender.render_page(page, dpi, max_seconds=max_seconds)
+    except vecrender.RenderTimeout:
+        raise ValueError("la página tardó demasiado en dibujarse (más de %d s)" % max_seconds)
+    except Exception as e:
+        raise ValueError("no se pudo dibujar la página: %s" % str(e)[:100])
+    return "image/png", vecrender.png_bytes(w, h, pix)
