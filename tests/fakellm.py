@@ -78,6 +78,8 @@ class FakeLLM:
                 mime, b64 = uri[5:].split(";base64,", 1)
                 data = base64.b64decode(b64)
                 S.images = getattr(S, "images", []) + [mime]
+                if S.mode == "novision":
+                    return self.send(400, {"error": {"message": "Model 'x' has no vision in this version: there is no mmproj file in its folder.", "type": "vision_not_supported"}})
                 if S.mode == "http500":
                     return self.send(500, {"error": "boom"})
                 if '"color"' in text:                           # «Probar conexión»: cuadro rojo

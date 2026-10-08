@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.1 — 2026-10-07
+- «Probar conexión»: si el servidor responde que el modelo no tiene visión (falta el mmproj), el mensaje lo explica y dice qué hacer.
+
 ## 0.14.0 — 2026-10-07
 - **«Secretos» pasa a llamarse «Claves»** en toda la interfaz y los mensajes (el API sigue en `/api/secrets`).
 - **Nombre de clave a elección:** nuevo tipo de campo `secret`. Los plugins de IA (`pdf_keyword_scan`, `llm_structure_addresses`) ya no exigen una clave con nombre fijo (`quipullm_key`): el campo **Clave** acepta el nombre que usted guardó (con lista desplegable de sus claves). Vacío = el servidor no pide clave. Un nombre que no existe detiene el paso con un mensaje claro.

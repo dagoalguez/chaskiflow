@@ -124,6 +124,10 @@ class Vision:
             body = e.read(300).decode("utf-8", "replace")
             if e.code in (401, 403):
                 raise RuntimeError("El servidor de IA rechazó la clave (HTTP %d). Escriba en el campo «Clave» el nombre de la clave guardada en 🔑 Claves, o revise que sea la correcta" % e.code)
+            if "vision_not_supported" in body or "mmproj" in body.lower():
+                raise RuntimeError("El servidor conectó y el modelo «%s» existe, pero NO tiene visión: falta el archivo mmproj en la carpeta del modelo. "
+                                   "Copie el archivo mmproj (p. ej. mmproj-….gguf del mismo modelo, versión F16) junto al .gguf del modelo en el servidor de IA y reinicie/recargue. "
+                                   "Detalle del servidor: %s" % (self.model, body[:140]))
             raise RuntimeError("HTTP %d del servidor de IA: %s" % (e.code, body[:160]))
         except urllib.error.URLError as e:
             raise RuntimeError("No se pudo conectar con el servidor de IA %s (%s)" % (self.base, e.reason))

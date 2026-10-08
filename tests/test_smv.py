@@ -322,6 +322,10 @@ class Scan(Base):
             r = self.run_node("pdf_keyword_scan", {"output_dir": self.folder, "base_url": llm.base, "modo_prueba": True})
             self.assertFalse(r["result"]["ok"])                                 # conecta pero no ve imágenes
             self.assertIn("no parece ver imágenes", r["result"]["mensaje"])
+        with FakeLLM(mode="novision") as llm:
+            r = self.run_node("pdf_keyword_scan", {"output_dir": self.folder, "base_url": llm.base, "modo_prueba": True})
+            self.assertEqual(r["status"], "error")
+            self.assertIn("falta el archivo mmproj", r["error"])
         r = self.run_node("pdf_keyword_scan", {"output_dir": self.folder, "base_url": "http://127.0.0.1:1/v1", "modo_prueba": True})
         self.assertEqual(r["status"], "error")
         self.assertIn("No se pudo conectar", r["error"])
