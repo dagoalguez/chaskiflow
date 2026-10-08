@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.13.6 — 2026-10-07
+- Panel de **Variables**: el valor se muestra **debajo** del nombre (a ancho completo) en vez de al lado, donde quedaba cortado en el panel angosto.
+
 ## 0.13.5 — 2026-10-07
 - `pdf_keyword_scan`: guarda el **texto limpio completo** de cada PDF (`TEXTOS/Empresa/Año/archivo.txt`, con marcas `[p. N]`) y lo reparte en las columnas `texto_1…texto_5` (≈30 000 caracteres por celda; configurable). `texto_completo` indica si todo cupo en la tabla. Las columnas se agregaron al ejemplo (CSV y Excel).
 - Nuevo `probar_pdf.py` (diagnóstico): por página, texto e imagen y, si es JBIG2, los tipos de segmento. Sirve para decidir si se puede leer ese formato sin instalar nada.

@@ -136,7 +136,11 @@ label.chk { display: flex; align-items: center; gap: 8px; }
 .problems { margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); }
 .problems .e { color: var(--err); } .problems .w { color: var(--warn); }
 .vars { max-width: 860px; margin: 0 auto 14px; }
-.vars .vrow { display: grid; grid-template-columns: 180px 1fr auto; gap: 6px; margin-top: 6px; }
+.vars .vrow { display: grid; grid-template-columns: 1fr auto; gap: 4px 6px; margin-top: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.vars .vrow:last-of-type { border-bottom: 0; padding-bottom: 0; }
+.vars .vrow input { min-width: 0; width: 100%; box-sizing: border-box; }
+.vars .vrow input:first-child { font-weight: 600; }
+.vars .vrow input:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
 
 /* ---- panel de ejecución, estilo chat ---- */
 .msg { max-width: 100%; padding: 8px 12px; border-radius: 14px; background: var(--panel2); border: 1px solid var(--border); }
