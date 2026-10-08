@@ -288,10 +288,31 @@ def _cfg_hash(cfg):
 
 
 def _atomic_json(path, obj):
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as fh:
-        json.dump(obj, fh, ensure_ascii=False)
-    os.replace(tmp, path)
+    """Guarda el JSON sin dejar el archivo a medias. En Windows el reemplazo falla (WinError 5/32) si el
+    archivo está abierto por otro programa (antivirus, OneDrive/SharePoint, vista previa del Explorador):
+    se reintenta, luego se escribe directo y, si tampoco se puede, devuelve False (el caché es opcional:
+    la corrida NO debe detenerse por esto). Devuelve True si quedó guardado."""
+    data = json.dumps(obj, ensure_ascii=False)
+    tmp = "%s.%d.tmp" % (path, os.getpid())
+    for _ in range(8):
+        try:
+            with open(tmp, "w", encoding="utf-8") as fh:
+                fh.write(data)
+            os.replace(tmp, path)
+            return True
+        except OSError:
+            time.sleep(0.4)
+    try:                                   # último recurso: escribir directo sobre el archivo
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(data)
+        ok = True
+    except OSError:
+        ok = False
+    try:
+        os.remove(tmp)
+    except OSError:
+        pass
+    return ok
 
 
 def _place(src, dest_dir, move):
@@ -457,6 +478,7 @@ def run(config, ctx):
     cfgh = _cfg_hash(cfg)
     cache_path = os.path.join(out_dir, "_cache_escaneo.json")
     cache = {}
+    cache_warned = False
     if os.path.isfile(cache_path) and not config.get("reprocesar"):
         try:
             cache = json.load(open(cache_path, encoding="utf-8"))
@@ -498,7 +520,10 @@ def run(config, ctx):
                 res["texto_ruta"] = tpath
             if not res["error"] and not res.get("ia_caida"):
                 cache[key] = {"sig": sig, "res": res}
-                _atomic_json(cache_path, cache)
+                if not _atomic_json(cache_path, cache) and not cache_warned:
+                    cache_warned = True
+                    ctx.log("AVISO: no se pudo guardar el caché %s (¿lo bloquea el antivirus, OneDrive o está abierto?). "
+                            "La revisión continúa; si se interrumpe, se repetirán los PDF ya revisados." % cache_path, "warn")
         hits = res["hits"]
         if not res["error"] and not res.get("_reutilizado"):
             ctx.log("%s %s: %d pág. · %d con texto · %d sin texto (%d leídas con IA)%s%s%s%s → %s" % (

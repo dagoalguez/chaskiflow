@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.6 — 2026-10-08
+- **Corrección (Windows): «[WinError 5] Acceso denegado: …_cache_escaneo.json.tmp → …_cache_escaneo.json» detenía el Escaneo** tras ~12 min de trabajo. Windows no deja reemplazar un archivo que otro programa tiene abierto un instante (antivirus, OneDrive/SharePoint, vista previa del Explorador). Ahora `pdf_keyword_scan` reintenta (8 veces), luego escribe directo sobre el archivo y, si aun así no puede, **avisa una vez en el registro y sigue**: el caché es opcional y la corrida ya no se detiene por él. Igual refuerzo en la descarga de PDF de `smv_financial_download`.
+- Pruebas nuevas (`CacheLockedWindows`).
+- **Al actualizar**, el plugin `pdf_keyword_scan` (y `smv_financial_download`) cambió: el admin debe **volver a aprobarlo** en Plugins (por el control de hash). Lo que ya se revisó sigue en el caché; no se repite.
+
 ## 0.16.5 — 2026-10-08
 - Si el **panel del paso** está oculto, **elegir un nodo lo abre** (clic en el nodo, clic derecho sobre él o añadir un paso nuevo). Ocultarlo a mano sigue funcionando y se recuerda.
 

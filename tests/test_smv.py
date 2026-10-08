@@ -516,5 +516,46 @@ class TestButtonApi(unittest.TestCase):
             srv.close() if hasattr(srv, "close") else None
 
 
+class CacheLockedWindows(unittest.TestCase):
+    """Windows: el caché del escaneo no debe detener la corrida si el reemplazo falla (WinError 5)."""
+
+    def _mod(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("kw_task_lock", PLUGINS / "pdf_keyword_scan" / "task.py")
+        sys.path.insert(0, str(PLUGINS / "pdf_keyword_scan"))
+        try:
+            m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+        finally:
+            sys.path.pop(0)
+        return m
+
+    def test_replace_denied_falls_back_to_direct_write(self):
+        m = self._mod(); d = tempfile.mkdtemp(); p = os.path.join(d, "_cache.json")
+        real, calls = os.replace, []
+        def denied(a, b):
+            calls.append(1); raise PermissionError(5, "Acceso denegado")
+        m.os.replace = denied; m.time.sleep = lambda s: None
+        try:
+            self.assertTrue(m._atomic_json(p, {"a": 1}))
+        finally:
+            m.os.replace = real
+        self.assertGreaterEqual(len(calls), 8)
+        self.assertEqual(json.load(open(p, encoding="utf-8")), {"a": 1})
+        self.assertEqual([n for n in os.listdir(d) if n.endswith(".tmp")], [])
+
+    def test_everything_denied_returns_false_without_raising(self):
+        m = self._mod(); d = tempfile.mkdtemp(); p = os.path.join(d, "_cache.json")
+        real_open = open
+        def deny(path, *a, **k):
+            raise PermissionError(5, "Acceso denegado")
+        m.time.sleep = lambda s: None
+        import builtins
+        builtins.open, saved = deny, builtins.open
+        try:
+            self.assertFalse(m._atomic_json(p, {"a": 1}))
+        finally:
+            builtins.open = saved
+
+
 if __name__ == "__main__":
     unittest.main()

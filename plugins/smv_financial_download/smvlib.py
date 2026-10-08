@@ -311,6 +311,13 @@ class Portal:
         tmp = dest + ".part"
         with open(tmp, "wb") as fh:
             fh.write(raw)
-        import os
-        os.replace(tmp, dest)
+        import os, time
+        for i in range(8):                 # en Windows el reemplazo falla un instante si el antivirus/OneDrive tiene el archivo
+            try:
+                os.replace(tmp, dest)
+                break
+            except PermissionError:
+                if i == 7:
+                    raise
+                time.sleep(0.4)
         return len(raw)
